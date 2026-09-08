@@ -1,0 +1,144 @@
+<script setup>
+import { computed, ref } from 'vue'
+import FlipModal from './FlipModal.vue'
+import SelectFlip from './SelectFlip.vue'
+import { useStore } from '../stores/data'
+
+const props = defineProps({
+  origin: { type: Object, default: null },
+  empleado: { type: Object, default: null },
+})
+
+const emit = defineEmits(['close'])
+
+const { state, updateEmpleado } = useStore()
+
+const partes = (props.empleado?.nombres || '').split(' ')
+
+const form = ref({
+  username: props.empleado?.username || '',
+  password: '',
+  first: partes[0] || '',
+  last: partes.slice(1).join(' ') || '',
+  email: props.empleado?.email || '',
+  municipalidad: props.empleado?.municipalidad_id ? String(props.empleado.municipalidad_id) : '',
+  superuser: !!props.empleado?.is_superuser,
+})
+
+const muniOptions = computed(() => [
+  { value: '', label: 'Todas (Supervisor)' },
+  ...state.municipalidades.map((m) => ({ value: String(m.id), label: m.nombre })),
+])
+
+function submit(close) {
+  if (props.empleado) {
+    updateEmpleado(props.empleado.id, {
+      username: form.value.username.trim(),
+      first_name: form.value.first.trim(),
+      last_name: form.value.last.trim(),
+      email: form.value.email.trim(),
+      municipalidad_id: form.value.municipalidad ? Number(form.value.municipalidad) : undefined,
+      is_superuser: form.value.superuser,
+    })
+  }
+  close()
+}
+</script>
+
+<template>
+  <FlipModal :origin="origin" content-height="520px" @close="emit('close')">
+    <template #default="{ close }">
+      <div class="content-box background padding-8">
+        <div class="simple-container justify-between">
+          <button
+            class="style-7 for-icon small rounded surface-container outline-text close-edit-modal-btn"
+            @click="close()"
+          >
+            <md-ripple aria-hidden="true"></md-ripple>
+            <md-icon class="filled" aria-hidden="true">close</md-icon>
+          </button>
+        </div>
+        <div class="simple-container direction-column grow-1 padding-16 text-center">
+          <span class="display-medium weight-600 line-height-1 text-gradient">Editar empleado</span>
+        </div>
+      </div>
+
+      <form
+        class="simple-container direction-column gap-16"
+        autocomplete="off"
+        novalidate
+        @submit.prevent="submit(close)"
+      >
+        <div data-flow-item data-input-label="Usuario">
+          <input v-model="form.username" type="text" class="style-2" name="emp-username" required />
+        </div>
+        <div data-flow-item data-input-label="Contraseña (dejar vacío para mantener)">
+          <input
+            v-model="form.password"
+            type="password"
+            class="style-2"
+            name="emp-password"
+            placeholder="••••••••"
+          />
+        </div>
+        <div class="simple-container gap-8">
+          <div data-flow-item data-input-label="Nombres" style="flex: 1">
+            <input v-model="form.first" type="text" class="style-2" name="emp-first" />
+          </div>
+          <div data-flow-item data-input-label="Apellidos" style="flex: 1">
+            <input v-model="form.last" type="text" class="style-2" name="emp-last" />
+          </div>
+        </div>
+        <div data-flow-item data-input-label="Email">
+          <input v-model="form.email" type="email" class="style-2" name="emp-email" />
+        </div>
+        <div data-flow-item data-input-label="Municipalidad">
+          <div class="asyncstate-data">
+            <SelectFlip
+              v-model="form.municipalidad"
+              name="emp-municipalidad"
+              scope="3020d431"
+              :options="muniOptions"
+              :option-height="52"
+            />
+          </div>
+        </div>
+        <!-- <div data-flow-item class="simple-container align-center gap-8" style="padding: 4px 0">
+          <label class="switch-label">
+            <input
+              v-model="form.superuser"
+              type="checkbox"
+              id="edit-emp-superuser"
+              name="emp-superuser"
+            />
+            <span class="switch-slider"></span>
+          </label>
+          <label for="edit-emp-superuser" class="body-large">Superadmin (acceso total)</label>
+        </div> -->
+        <div
+          data-v-6c7476fc
+          class="container variant-gradient align-right"
+          style="gap: 8px; --gradient-overflow: 16px"
+        >
+          <div data-v-6c7476fc class="gradient-row" style="gap: 8px">
+            <button
+              type="button"
+              class="style-7 for-icon surface-container outline-text flex-1 rounded big close-edit-modal-btn"
+              @click="close()"
+            >
+              <md-ripple aria-hidden="true"></md-ripple>
+              <md-icon aria-hidden="true">close</md-icon>
+            </button>
+            <button
+              type="submit"
+              class="style-7 primary-container on-primary-container-text flex-1 rounded big"
+            >
+              <md-ripple aria-hidden="true"></md-ripple>
+              <span>Guardar</span>
+            </button>
+          </div>
+        </div>
+      </form>
+    </template>
+  </FlipModal>
+</template>

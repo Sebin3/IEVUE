@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.ico" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content"
+    />
+    <title>Gob.pe</title>
+
+    <!-- Material Web Components: define <md-icon>, <md-ripple>, <md-menu>... -->
+    <script src="/bundle.js"></script>
+
+    <style id="app-theme">
+      /* Tema por defecto vacio - se carga desde localStorage inmediatamente */
+    </style>
+
+    <!-- Cargar tema INMEDIATAMENTE para evitar parpadeo -->
+    <script>
+      (function () {
+        var saved = localStorage.getItem('currentTheme')
+        if (!saved) return
+        var allowed = [
+          'gray',
+          'black',
+          'green',
+          'blue',
+          'brown',
+          'purple',
+          'red',
+          'pink',
+          'pastel-pink',
+          'super-blue',
+        ]
+        if (allowed.indexOf(saved) === -1) return
+        fetch('/themes/' + saved + '.css')
+          .then(function (res) {
+            return res.text()
+          })
+          .then(function (css) {
+            var el = document.getElementById('app-theme')
+            el.textContent = css
+            // El tema debe ser lo ultimo del <head> para ganarle a frontend.css
+            // (igual que en index.html original).
+            document.head.appendChild(el)
+          })
+          .catch(function (err) {
+            console.error('Error loading theme:', err)
+          })
+      })()
+    </script>
+  </head>
+  <body>
+    <div id="app" class="app-main"></div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

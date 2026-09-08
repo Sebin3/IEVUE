@@ -1,0 +1,230 @@
+/* ============================================================
+   patches.css
+   Overrides que index.html llevaba en su <style> inline.
+   Se cargan DESPUES de frontend.css, igual que en el original.
+   Adaptado a Vue: donde index.html usaba #page-xxx, aqui se usa
+   la clase que cada pagina pone en su .app-view raiz.
+   ============================================================ */
+
+/* frontend.css espera .app-view como hijo directo de .app-container.
+   En Vue eso se cumple solo (router-view no crea wrapper), asi que
+   los parches de .page/.page.active del original ya no hacen falta. */
+
+/* index.html ponia class="app-main" en el propio #app; aqui #app es el punto
+   de montaje de Vue, asi que necesita el mismo alto para que .app-main crezca. */
+#app {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+}
+
+.app-nav {
+    z-index: 1 !important;
+}
+
+/* Los modales van encima de todo */
+.modal-backdrop[data-v-c84aa51e] {
+    z-index: 10000 !important;
+}
+
+/* ── Toggle switch (checkbox) ── */
+.switch-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.switch-label input {
+    display: none;
+}
+.switch-slider {
+    width: 44px;
+    height: 24px;
+    border-radius: 12px;
+    background: var(--md-sys-color-surface-variant, #ccc);
+    position: relative;
+    transition: background 0.2s;
+    flex-shrink: 0;
+}
+.switch-slider::after {
+    content: '';
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--md-sys-color-on-surface, #333);
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    transition: transform 0.2s, background 0.2s;
+}
+.switch-label input:checked + .switch-slider {
+    background: var(--md-sys-color-primary, #1976d2);
+}
+.switch-label input:checked + .switch-slider::after {
+    transform: translateX(20px);
+    background: var(--md-sys-color-on-primary, #fff);
+}
+
+/* ── Anchos de columna de la tabla de movimientos ── */
+.column-date[data-v-086fa15e] {
+    min-width: 100px;
+    max-width: 120px;
+    width: 100px;
+}
+.column-time[data-v-086fa15e] {
+    min-width: 100px;
+    max-width: 120px;
+    width: 100px;
+    white-space: nowrap;
+}
+.column-amount[data-v-086fa15e] {
+    min-width: 100px;
+    max-width: 120px;
+    width: 100px;
+    white-space: nowrap;
+}
+.column-description[data-v-086fa15e] {
+    min-width: 150px;
+    max-width: 300px;
+    overflow: hidden;
+    width: 290px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.column-category[data-v-086fa15e] {
+    min-width: 130px;
+    max-width: 180px;
+    white-space: nowrap;
+}
+.column-account[data-v-086fa15e] {
+    min-width: 100px;
+    max-width: 160px;
+}
+.column-monto[data-v-086fa15e] {
+    min-width: 100px;
+    max-width: 140px;
+    white-space: nowrap;
+}
+.chip[data-v-086fa15e] {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    width: fit-content;
+}
+.chip-emoji[data-v-086fa15e] {
+    line-height: 1;
+}
+.chip-name[data-v-086fa15e] {
+    white-space: nowrap;
+}
+.amount[data-v-086fa15e] {
+    width: fit-content;
+    font-size: inherit;
+    font-weight: 500;
+    text-wrap: nowrap;
+}
+.amount.plain.positive[data-v-086fa15e] {
+    color: var(--md-sys-color-primary);
+}
+.amount.plain.negative[data-v-086fa15e] {
+    color: var(--md-sys-color-error);
+}
+
+/* ── Estado vacio (lo usan varias paginas) ── */
+.empty-data {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    color: var(--md-sys-color-outline, #999);
+    text-align: center;
+    gap: 8px;
+}
+.empty-data md-icon {
+    font-size: 40px;
+}
+
+/* ── Login ── */
+.app-view.page-login {
+    min-height: 100vh;
+    justify-content: center;
+}
+
+.page-login input.style-1,
+#loginForm input.style-1 {
+    width: 100%;
+    padding: 12px 16px;
+    border-radius: 12px;
+    border: 1px solid var(--md-sys-color-outline, #ccc);
+    background: var(--md-sys-color-surface, #fff);
+    color: var(--md-sys-color-on-surface, #000);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+}
+
+.page-login input.style-1:focus,
+#loginForm input.style-1:focus {
+    outline: none;
+    border-color: var(--md-sys-color-primary, #6750a4);
+    box-shadow: 0 0 0 3px var(--md-sys-color-primary-container, #eaddff);
+}
+
+.error-container {
+    background: var(--md-sys-color-error-container, #f9dedc);
+    padding: 12px 16px;
+    border-radius: 12px;
+}
+
+.error-text {
+    color: var(--md-sys-color-error, #ba1a1a) !important;
+}
+
+#loginBtn {
+    width: 100%;
+    padding: 16px;
+    border-radius: 24px;
+    font-size: 16px;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+#loginBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ── Badges de estado ── */
+.badge {
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: capitalize;
+}
+
+.status-pending {
+    background: var(--md-sys-color-tertiary-container, #ffd8e4);
+    color: var(--md-sys-color-on-tertiary-container, #31111d);
+}
+
+.status-processing {
+    background: var(--md-sys-color-secondary-container, #e8def8);
+    color: var(--md-sys-color-on-secondary-container, #1d192b);
+}
+
+.status-completed {
+    background: var(--md-sys-color-primary-container, #eaddff);
+    color: var(--md-sys-color-on-primary-container, #21005d);
+}
+
+.status-rejected {
+    background: var(--md-sys-color-error-container, #f9dedc);
+    color: var(--md-sys-color-on-error-container, #410e0b);
+}

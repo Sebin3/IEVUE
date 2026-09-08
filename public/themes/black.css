@@ -1,0 +1,87 @@
+/* Tema Black - Negro/Blanco puro */
+/* Usado en sbMoney.html */
+
+@media (prefers-color-scheme: light) {
+    :root, :host {
+        --md-sys-color-background: #fbf9fc;
+        --md-sys-color-on-background: #1b1b1e;
+        --md-sys-color-surface: #fbf9fc;
+        --md-sys-color-surface-dim: #dbd9dc;
+        --md-sys-color-surface-bright: #fbf9fc;
+        --md-sys-color-surface-container-lowest: #ffffff;
+        --md-sys-color-surface-container-low: #f5f3f6;
+        --md-sys-color-surface-container: #efedf0;
+        --md-sys-color-surface-container-high: #e9e7ea;
+        --md-sys-color-surface-container-highest: #e4e2e5;
+        --md-sys-color-on-surface: #1b1b1e;
+        --md-sys-color-surface-variant: #e1e2eb;
+        --md-sys-color-on-surface-variant: #44474e;
+        --md-sys-color-inverse-surface: #303033;
+        --md-sys-color-inverse-on-surface: #f2f0f3;
+        --md-sys-color-outline: #75777e;
+        --md-sys-color-outline-variant: #c5c6ce;
+        --md-sys-color-shadow: #000000;
+        --md-sys-color-scrim: #000000;
+        --md-sys-color-surface-tint: #4d5f80;
+        --md-sys-color-primary: #000000;
+        --md-sys-color-on-primary: #ffffff;
+        --md-sys-color-primary-container: #000000;
+        --md-sys-color-on-primary-container: #ffffff;
+        --md-sys-color-inverse-primary: #b4c7ed;
+        --md-sys-color-secondary: #585e6d;
+        --md-sys-color-on-secondary: #ffffff;
+        --md-sys-color-secondary-container: #e0e6f8;
+        --md-sys-color-on-secondary-container: #444a58;
+        --md-sys-color-tertiary: #000000;
+        --md-sys-color-on-tertiary: #ffffff;
+        --md-sys-color-tertiary-container: #ab3fcf;
+        --md-sys-color-on-tertiary-container: #c2a8d1;
+        --md-sys-color-error: #ba1a1a;
+        --md-sys-color-on-error: #ffffff;
+        --md-sys-color-error-container: #ffdad6;
+        --md-sys-color-on-error-container: #410002;
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    :root, :host {
+        color-scheme: dark;
+        --md-sys-color-background: #000000;
+        --md-sys-color-on-background: #e4e2e5;
+        --md-sys-color-surface: #000000;
+        --md-sys-color-surface-dim: #0a0a0a;
+        --md-sys-color-surface-bright: #121214;
+        --md-sys-color-surface-container-lowest: #0a0a0a;
+        --md-sys-color-surface-container-low: #101012;
+        --md-sys-color-surface-container: #17171a;
+        --md-sys-color-surface-container-high: #202022;
+        --md-sys-color-surface-container-highest: #28282b;
+        --md-sys-color-on-surface: #e4e2e5;
+        --md-sys-color-surface-variant: #3a3d43;
+        --md-sys-color-on-surface-variant: #c5c6ce;
+        --md-sys-color-inverse-surface: #e4e2e5;
+        --md-sys-color-inverse-on-surface: #303033;
+        --md-sys-color-outline: #7e8088;
+        --md-sys-color-outline-variant: #3a3d43;
+        --md-sys-color-shadow: #000000;
+        --md-sys-color-scrim: #000000;
+        --md-sys-color-surface-tint: #9fb8e4;
+        --md-sys-color-primary: #ffffff;
+        --md-sys-color-on-primary: #000000;
+        --md-sys-color-primary-container: #ffffff;
+        --md-sys-color-on-primary-container: #000000;
+        --md-sys-color-inverse-primary: #4d5f80;
+        --md-sys-color-secondary: #b1b9cc;
+        --md-sys-color-on-secondary: #242b37;
+        --md-sys-color-secondary-container: #313641;
+        --md-sys-color-on-secondary-container: #c3c9db;
+        --md-sys-color-tertiary: #caa3d7;
+        --md-sys-color-on-tertiary: #352339;
+        --md-sys-color-tertiary-container: #a235c6;
+        --md-sys-color-on-tertiary-container: #a488b0;
+        --md-sys-color-error: #ffb4ab;
+        --md-sys-color-on-error: #690005;
+        --md-sys-color-error-container: #93000a;
+        --md-sys-color-on-error-container: #ffdad6;
+    }
+}
