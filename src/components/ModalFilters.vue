@@ -47,17 +47,18 @@ const yearOptions = (() => {
 
 const prioridadOptions = [
   { value: '', label: 'Todos' },
-  { value: 'Critica', label: '🔴 Critica' },
-  { value: 'Alta', label: '🟠 Alta' },
-  { value: 'Media', label: '🟡 Media' },
-  { value: 'Baja', label: '🟢 Baja' },
+  { value: 'Critica', label: 'Critica' },
+  { value: 'Alta', label: 'Alta' },
+  { value: 'Media', label: 'Media' },
+  { value: 'Baja', label: 'Baja' },
 ]
 
 const estadoOptions = [
   { value: '', label: 'Todos' },
-  { value: 'Pendiente', label: '⏳ Pendiente' },
-  { value: 'En Revision', label: '👀 En Revision' },
-  { value: 'Finalizado', label: '✅ Finalizado' },
+  { value: 'Pendiente', label: 'Pendiente' },
+  { value: 'En Revision', label: 'En Revision' },
+  { value: 'Finalizado', label: 'Finalizado' },
+  { value: 'Rechazado', label: 'Rechazado' },
 ]
 
 // v-model de dos vias contra el store.

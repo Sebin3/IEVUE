@@ -17,9 +17,6 @@ const search = useModal()
 const filters = useModal()
 const exportModal = useModal()
 
-const PRIO_EMOJI = { Critica: '🔴', Alta: '🟠', Media: '🟡', Baja: '🟢' }
-const ESTADO_EMOJI = { Pendiente: '⏳', 'En Revision': '👀', Finalizado: '✅' }
-
 // Lista ya filtrada por el modal de filtros / buscador (store).
 const tramites = filteredTramites
 const hasData = computed(() => tramites.value.length > 0)
@@ -31,6 +28,23 @@ const kpiPendientes = computed(
 const kpiCompletados = computed(
   () => tramites.value.filter((t) => t.estado === 'Finalizado').length,
 )
+const kpiRechazados = computed(
+  () => tramites.value.filter((t) => t.estado === 'Rechazado').length,
+)
+
+const priorityClasses = {
+  Critica: 'priority-critical',
+  Alta: 'priority-high',
+  Media: 'priority-medium',
+  Baja: 'priority-low',
+}
+
+const statusClasses = {
+  Pendiente: 'status-pending',
+  'En Revision': 'status-review',
+  Finalizado: 'status-completed',
+  Rechazado: 'status-rejected',
+}
 
 function fecha(t) {
   return new Date(t.fecha_creacion).toLocaleDateString('es-PE', {
@@ -63,7 +77,7 @@ const grupos = computed(() => {
   <div class="app-view">
     <div class="simple-container direction-column gap-24 grow-1">
       <div class="app-header">
-        <span class="display-medium weight-500 text-gradient">Movimientos</span>
+        <span class="display-medium weight-500 text-gradient">Trámites</span>
         <div class="simple-container only-on-mobile">
           <button
             class="style-7 for-icon bigger rounded background outline-text"
@@ -121,8 +135,8 @@ const grupos = computed(() => {
               <span class="headline-small weight-500">{{ kpiCompletados }}</span>
             </div>
             <div class="content-box width-auto basis-small grow-1 gap-0 light-color gap-4">
-              <span class="body-large outline-text line-height-1">Ingresos</span>
-              <span class="headline-small weight-500">PEN&nbsp;0.00</span>
+              <span class="body-large outline-text line-height-1">Rechazados</span>
+              <span class="headline-small weight-500">{{ kpiRechazados }}</span>
             </div>
           </div>
         </div>
@@ -137,7 +151,7 @@ const grupos = computed(() => {
                 border_clear
               </md-icon>
               <span class="headline-small weight-500 outline-text">
-                No se encontraron movimientos
+                No se encontraron trámites
               </span>
             </div>
           </div>
@@ -178,13 +192,13 @@ const grupos = computed(() => {
                     <md-icon data-v-086fa15e class="dynamic filled" aria-hidden="true">
                       description
                     </md-icon>
-                    Trámite
+                    Tipo de tramite
                   </th>
                   <th data-v-086fa15e>
                     <md-icon data-v-086fa15e class="dynamic filled" aria-hidden="true">
-                      domain
+                      meeting_room
                     </md-icon>
-                    Municipalidad
+                    Salón y sección
                   </th>
                   <th data-v-086fa15e>
                     <md-icon data-v-086fa15e class="dynamic filled" aria-hidden="true">
@@ -219,26 +233,24 @@ const grupos = computed(() => {
                   <td data-v-086fa15e class="column-description">{{ t.nombre_ciudadano }}</td>
                   <td data-v-086fa15e class="column-monto">{{ t.tipo_tramite }}</td>
                   <td data-v-086fa15e class="column-account">
-                    {{ t.municipalidad_nombre || 'Sin asignar' }}
+                    {{ t.salon_seccion || 'Sin asignar' }}
                   </td>
                   <td data-v-086fa15e class="column-category">
-                    <div data-v-086fa15e class="chip">
-                      <span data-v-086fa15e class="chip-emoji" data-shared-item="emoji">
-                        {{ PRIO_EMOJI[t.prioridad_ia] || '⚪' }}
-                      </span>
-                      <span data-v-086fa15e class="chip-name" data-shared-item="name">
-                        {{ t.prioridad_ia }}
-                      </span>
+                    <div
+                      data-v-086fa15e
+                      class="chip"
+                      :class="priorityClasses[t.prioridad_ia]"
+                    >
+                      <span data-v-086fa15e class="chip-name" data-shared-item="name">{{
+                        t.prioridad_ia
+                      }}</span>
                     </div>
                   </td>
                   <td data-v-086fa15e class="column-account">
-                    <div data-v-086fa15e class="chip">
-                      <span data-v-086fa15e class="chip-emoji" data-shared-item="emoji">
-                        {{ ESTADO_EMOJI[t.estado] || '⚪' }}
-                      </span>
-                      <span data-v-086fa15e class="chip-name" data-shared-item="name">
-                        {{ t.estado }}
-                      </span>
+                    <div data-v-086fa15e class="chip" :class="statusClasses[t.estado]">
+                      <span data-v-086fa15e class="chip-name" data-shared-item="name">{{
+                        t.estado
+                      }}</span>
                     </div>
                   </td>
                   <td data-v-086fa15e>
@@ -289,8 +301,15 @@ const grupos = computed(() => {
                   class="movement-row"
                   @click="edit.show($event, t)"
                 >
-                  <div data-v-33d24f89 class="emoji" data-shared-item="emoji">
-                    <span data-v-33d24f89>{{ PRIO_EMOJI[t.prioridad_ia] || '⚪' }}</span>
+                  <div
+                    data-v-33d24f89
+                    class="priority-label"
+                    :class="priorityClasses[t.prioridad_ia]"
+                    :aria-label="`Prioridad ${t.prioridad_ia}`"
+                    :title="`Prioridad ${t.prioridad_ia}`"
+                    data-shared-item="priority"
+                  >
+                    <md-icon aria-hidden="true">assignment</md-icon>
                   </div>
                   <div data-v-33d24f89 class="description-container">
                     <div data-v-33d24f89 class="description-text" data-shared-item="description">
@@ -306,7 +325,10 @@ const grupos = computed(() => {
                     data-v-79050b20
                     data-v-33d24f89
                     class="amount plain chip"
-                    :class="t.estado === 'Finalizado' ? 'positive' : 'negative'"
+                    :class="[
+                      statusClasses[t.estado],
+                      t.estado === 'Finalizado' ? 'positive' : 'negative',
+                    ]"
                     data-shared-item="amount"
                   >
                     {{ t.estado }}

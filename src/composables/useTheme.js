@@ -21,7 +21,7 @@ export const themeList = [
 
 const validThemes = new Set(themeList.map((t) => t.name))
 
-const currentTheme = ref(localStorage.getItem('currentTheme') || 'blue')
+const currentTheme = ref(localStorage.getItem('currentTheme') || 'gray')
 
 let themeStyleEl = null
 

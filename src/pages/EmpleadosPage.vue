@@ -19,13 +19,14 @@ const empleados = filteredEmpleados
 const hasData = computed(() => empleados.value.length > 0)
 
 const kpiTotal = computed(() => empleados.value.length)
-const kpiAsignados = computed(
-  () => empleados.value.filter((e) => e.municipalidad_id != null).length,
+const kpiProfesores = computed(() => empleados.value.filter((e) => e.cargo === 'Profesor').length)
+const kpiAdministrativos = computed(
+  () =>
+    empleados.value.filter((e) =>
+      ['Administrador', 'Subdirector', 'Director'].includes(e.cargo),
+    ).length,
 )
-const kpiNoAsignados = computed(
-  () => empleados.value.filter((e) => e.municipalidad_id == null).length,
-)
-const kpiSuper = computed(() => empleados.value.filter((e) => e.is_superuser).length)
+const kpiAuxiliares = computed(() => empleados.value.filter((e) => e.cargo === 'Auxiliar').length)
 
 function registro(e) {
   return new Date(e.fecha_registro).toLocaleDateString('es-PE')
@@ -72,18 +73,20 @@ function registro(e) {
               <span id="empKpiTotal" class="headline-small weight-500">{{ kpiTotal }}</span>
             </div>
             <div class="content-box width-auto basis-small grow-1 gap-0 light-color gap-4">
-              <span class="body-large outline-text line-height-1">Asignados</span>
-              <span id="empKpiAsignados" class="headline-small weight-500">{{ kpiAsignados }}</span>
+              <span class="body-large outline-text line-height-1">Profesores</span>
+              <span id="empKpiProfesores" class="headline-small weight-500">{{ kpiProfesores }}</span>
             </div>
             <div class="content-box width-auto basis-small grow-1 gap-0 light-color gap-4">
-              <span class="body-large outline-text line-height-1">No asignados</span>
-              <span id="empKpiNoAsignados" class="headline-small weight-500">
-                {{ kpiNoAsignados }}
+              <span class="body-large outline-text line-height-1">Administrativos</span>
+              <span id="empKpiAdministrativos" class="headline-small weight-500">
+                {{ kpiAdministrativos }}
               </span>
             </div>
             <div class="content-box width-auto basis-small grow-1 gap-0 light-color gap-4">
-              <span class="body-large outline-text line-height-1">Superadmins</span>
-              <span id="empKpiSuper" class="headline-small weight-500">{{ kpiSuper }}</span>
+              <span class="body-large outline-text line-height-1">Auxiliares</span>
+              <span id="empKpiAuxiliares" class="headline-small weight-500">
+                {{ kpiAuxiliares }}
+              </span>
             </div>
           </div>
         </div>
@@ -113,7 +116,7 @@ function registro(e) {
                     <md-icon data-v-086fa15e class="dynamic filled" aria-hidden="true">
                       person
                     </md-icon>
-                    Usuario
+                    DNI
                   </th>
                   <th data-v-086fa15e>
                     <md-icon data-v-086fa15e class="dynamic filled" aria-hidden="true">
@@ -137,7 +140,7 @@ function registro(e) {
                     <md-icon data-v-086fa15e class="dynamic filled" aria-hidden="true">
                       domain
                     </md-icon>
-                    Municipalidad
+                    Cargo
                   </th>
                   <!-- <th data-v-086fa15e>
                     <md-icon data-v-086fa15e class="dynamic filled" aria-hidden="true">
@@ -163,12 +166,14 @@ function registro(e) {
               <tbody data-v-086fa15e id="empleadosTableBody">
                 <tr v-for="e in empleados" :key="e.id" data-v-086fa15e>
                   <td data-v-086fa15e>
-                    <strong>{{ e.username }}</strong>
+                    <div data-v-086fa15e class="body-medium amount plain positive">
+                      {{ e.dni }}
+                    </div>
                   </td>
                   <td data-v-086fa15e>{{ e.nombres || '-' }}</td>
                   <td data-v-086fa15e>{{ e.email || '-' }}</td>
 
-                  <td data-v-086fa15e>{{ e.municipalidad_nombre || 'Todas' }}</td>
+                  <td data-v-086fa15e>{{ e.cargo || 'Sin cargo' }}</td>
                   <!-- <td data-v-086fa15e>{{ e.is_superuser ? '✓' : '✗' }}</td> -->
                   <td data-v-086fa15e>{{ e.is_active ? 'Activo' : 'Inactivo' }}</td>
                   <td data-v-086fa15e>{{ registro(e) }}</td>
@@ -201,6 +206,43 @@ function registro(e) {
                 </tr>
               </tbody>
             </table>
+          </div>
+
+          <div
+            v-if="hasData"
+            id="empleadosMobile"
+            data-v-086fa15e
+            class="simple-container direction-column only-on-mobile"
+          >
+            <article
+              v-for="e in empleados"
+              :key="e.id"
+              class="employee-row"
+              @click="edit.show($event, e)"
+            >
+              <div class="employee-avatar" aria-hidden="true">
+                <md-icon>person</md-icon>
+              </div>
+
+              <div class="employee-details">
+                <span class="body-large weight-500 employee-name">
+                  {{ e.nombres || e.dni }}
+                </span>
+                <span class="label-large outline-text employee-cargo">
+                  {{ e.cargo || 'Sin cargo' }}
+                </span>
+              </div>
+
+              <div class="employee-row-status">
+                <span
+                  class="employee-status"
+                  :class="e.is_active ? 'employee-status-active' : 'employee-status-inactive'"
+                >
+                  {{ e.is_active ? 'Activo' : 'Inactivo' }}
+                </span>
+              </div>
+
+            </article>
           </div>
         </div>
       </div>

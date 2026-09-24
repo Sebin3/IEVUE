@@ -6,93 +6,88 @@ const state = reactive({
       id: 1,
       dni: '12345678',
       nombre_ciudadano: 'Juan Perez Lopez',
-      tipo_tramite: 'Constancia de residencia',
-      descripcion_asunto: 'Solicitud de constancia de residencia para trámite bancario',
+      tipo_tramite: 'Justificación de inasistencia',
+      descripcion_asunto:
+        'Se solicita justificar la inasistencia del estudiante por motivos de salud.',
       prioridad_ia: 'Alta',
       estado: 'Pendiente',
       resolucion_admin: '',
-      municipalidad_nombre: 'Municipalidad de Lima',
+      salon_seccion: '1A',
       fecha_creacion: '2025-08-20T10:30:00',
     },
     {
       id: 2,
       dni: '87654321',
       nombre_ciudadano: 'Maria Garcia Torres',
-      tipo_tramite: 'Licencia de funcionamiento',
-      descripcion_asunto: 'Renovación de licencia de funcionamiento comercial',
+      tipo_tramite: 'Solicitud de permiso para faltar',
+      descripcion_asunto:
+        'Se solicita permiso para que el estudiante se ausente durante un día.',
       prioridad_ia: 'Critica',
       estado: 'En Revision',
       resolucion_admin: '',
-      municipalidad_nombre: 'Municipalidad de Miraflores',
+      salon_seccion: '2B',
       fecha_creacion: '2025-08-19T14:15:00',
     },
     {
       id: 3,
       dni: '11223344',
       nombre_ciudadano: 'Carlos Rodriguez Silva',
-      tipo_tramite: 'Certificado de candado',
-      descripcion_asunto: 'Emisión de certificado para retiro de vehiculo',
+      tipo_tramite: 'Solicitud de reunión con un profesor',
+      descripcion_asunto:
+        'Se solicita una reunión con un profesor para tratar un asunto académico.',
       prioridad_ia: 'Baja',
       estado: 'Finalizado',
-      resolucion_admin: 'Retiro autorizado con pago de S/. 150.00',
-      municipalidad_nombre: 'Municipalidad de San Isidro',
+      resolucion_admin: 'Reunión programada con el profesor para la fecha indicada.',
+      salon_seccion: '3C',
       fecha_creacion: '2025-08-18T09:00:00',
     },
     {
       id: 4,
       dni: '55667788',
       nombre_ciudadano: 'Ana Martinez Vargas',
-      tipo_tramite: 'Permiso de construccion',
-      descripcion_asunto: 'Solicitud de permiso para ampliacion de vivienda',
+      tipo_tramite: 'Justificación de inasistencia',
+      descripcion_asunto:
+        'Se solicita justificar la inasistencia del estudiante por una cita médica.',
       prioridad_ia: 'Media',
       estado: 'Pendiente',
       resolucion_admin: '',
-      municipalidad_nombre: 'Municipalidad de Surco',
+      salon_seccion: '1B',
       fecha_creacion: '2025-08-21T16:45:00',
     },
   ],
   empleados: [
     {
       id: 1,
-      username: 'Romero',
+      dni: '74638291',
       nombres: 'Romero Garcia',
       email: 'romerogarcia@peruanosuizo.edu.pe',
-      municipalidad_id: 1,
-      municipalidad_nombre: 'Municipalidad de Lima',
+      cargo: 'Administrador',
       // is_superuser: false,
       is_active: true,
       fecha_registro: '2025-01-15T08:00:00',
     },
     {
       id: 2,
-      username: 'Juan',
+      dni: '70815426',
       nombres: 'Juan Perez Lopez',
       email: 'juanperez@peruanosuizo.edu.pe',
-      municipalidad_id: 1,
-      municipalidad_nombre: 'Municipalidad de Lima',
+      cargo: 'Profesor',
       // is_superuser: false,
       is_active: true,
       fecha_registro: '2025-03-10T10:30:00',
     },
     {
       id: 3,
-      username: 'Maria',
+      dni: '76549832',
       nombres: 'Maria Garcia Torres',
       email: 'mariagarcia@peruanosuizo.edu.pe',
-      municipalidad_id: 2,
-      municipalidad_nombre: 'Municipalidad de Miraflores',
+      cargo: 'Subdirector',
       // is_superuser: false,
       is_active: false,
       fecha_registro: '2025-05-22T14:00:00',
     },
   ],
-  municipalidades: [
-    { id: 1, nombre: 'Municipalidad de Lima' },
-    { id: 2, nombre: 'Municipalidad de Miraflores' },
-    { id: 3, nombre: 'Municipalidad de San Isidro' },
-    { id: 4, nombre: 'Municipalidad de Surco' },
-    { id: 5, nombre: 'Municipalidad de San Borja' },
-  ],
+  cargos: ['Profesor', 'Administrador', 'Subdirector', 'Director', 'Auxiliar'],
   nextTramiteId: 5,
   nextEmpleadoId: 4,
   // index.html mantiene `currentFilters` global + doSearch()/applyFilters()
@@ -118,7 +113,7 @@ const filteredTramites = computed(() => {
       (t.dni && t.dni.includes(q)) ||
       (t.nombre_ciudadano && t.nombre_ciudadano.toLowerCase().includes(q)) ||
       (t.tipo_tramite && t.tipo_tramite.toLowerCase().includes(q)) ||
-      (t.municipalidad_nombre && t.municipalidad_nombre.toLowerCase().includes(q))
+      (t.salon_seccion && t.salon_seccion.toLowerCase().includes(q))
     )
   })
 })
@@ -129,9 +124,10 @@ const filteredEmpleados = computed(() => {
   if (!q) return state.empleados
   return state.empleados.filter(
     (e) =>
-      (e.username && e.username.toLowerCase().includes(q)) ||
+      (e.dni && e.dni.toLowerCase().includes(q)) ||
       (e.nombres && e.nombres.toLowerCase().includes(q)) ||
-      (e.email && e.email.toLowerCase().includes(q)),
+      (e.email && e.email.toLowerCase().includes(q)) ||
+      (e.cargo && e.cargo.toLowerCase().includes(q)),
   )
 })
 
@@ -146,7 +142,7 @@ export function useStore() {
       prioridad_ia: data.prioridad_ia || 'Media',
       estado: data.estado || 'Pendiente',
       resolucion_admin: data.resolucion_admin || '',
-      municipalidad_nombre: data.municipalidad_nombre || 'Sin municipalidad',
+      salon_seccion: data.salon_seccion || '1A',
       fecha_creacion: new Date().toISOString(),
     }
     state.tramites.unshift(tramite)
@@ -167,11 +163,10 @@ export function useStore() {
   function addEmpleado(data) {
     const emp = {
       id: state.nextEmpleadoId++,
-      username: data.username || '',
+      dni: data.dni || '',
       nombres: `${data.first_name || ''} ${data.last_name || ''}`.trim(),
       email: data.email || '',
-      municipalidad_id: data.municipalidad_id,
-      municipalidad_nombre: state.municipalidades.find(m => m.id === data.municipalidad_id)?.nombre || 'Sin asignar',
+      cargo: data.cargo || 'Profesor',
       is_superuser: data.is_superuser || false,
       is_active: true,
       fecha_registro: new Date().toISOString(),
@@ -184,15 +179,12 @@ export function useStore() {
     const idx = state.empleados.findIndex(e => e.id === id)
     if (idx !== -1) {
       const emp = state.empleados[idx]
-      if (data.username) emp.username = data.username
+      if (data.dni) emp.dni = data.dni
       if (data.first_name || data.last_name) {
         emp.nombres = `${data.first_name || ''} ${data.last_name || ''}`.trim()
       }
       if (data.email) emp.email = data.email
-      if (data.municipalidad_id !== undefined) {
-        emp.municipalidad_id = data.municipalidad_id
-        emp.municipalidad_nombre = state.municipalidades.find(m => m.id === data.municipalidad_id)?.nombre || 'Sin asignar'
-      }
+      if (data.cargo !== undefined) emp.cargo = data.cargo
       if (data.is_superuser !== undefined) emp.is_superuser = data.is_superuser
     }
   }
@@ -201,8 +193,8 @@ export function useStore() {
     state.empleados = state.empleados.filter(e => e.id !== id)
   }
 
-  function getMunicipalidades() {
-    return state.municipalidades
+  function getCargos() {
+    return state.cargos
   }
 
   function setFilter(key, value) {
@@ -227,7 +219,7 @@ export function useStore() {
     addEmpleado,
     updateEmpleado,
     deleteEmpleado,
-    getMunicipalidades,
+    getCargos,
     setFilter,
     setQuery,
     setEmpQuery,

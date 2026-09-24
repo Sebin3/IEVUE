@@ -128,7 +128,7 @@ const filters = useModal()
 
       <!-- Sección de movimientos -->
       <div data-v-1f02e176 class="simple-container justify-between gap-8 align-center">
-        <span data-v-1f02e176 class="headline-small outline-text l-padding-16">Movimientos</span>
+        <span data-v-1f02e176 class="headline-small outline-text l-padding-16">Trámites</span>
         <div data-v-1f02e176 class="simple-container gap-8">
           <button
             data-v-1f02e176
@@ -150,7 +150,7 @@ const filters = useModal()
                 border_clear
               </md-icon>
               <span class="headline-small weight-500 outline-text">
-                No se encontraron movimientos
+                No se encontraron trámites
               </span>
             </div>
           </div>

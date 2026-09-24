@@ -26,7 +26,7 @@ const query = computed({
 })
 
 const placeholder = computed(() =>
-  isEmpleados.value ? 'Busca un empleado' : 'Busca un movimiento',
+  isEmpleados.value ? 'Busca un empleado' : 'Busca un trámite',
 )
 
 const inputEl = ref(null)

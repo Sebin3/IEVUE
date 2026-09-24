@@ -13,29 +13,28 @@ const emit = defineEmits(['close'])
 const { state, addEmpleado } = useStore()
 
 const form = ref({
-  username: '',
-  password: '',
+  dni: '',
   first: '',
   last: '',
   email: '',
-  municipalidad: '',
+  password: '',
+  cargo: '',
   superuser: false,
 })
 
-const muniOptions = computed(() => [
-  { value: '', label: 'Todas (Supervisor)' },
-  ...state.municipalidades.map((m) => ({ value: String(m.id), label: m.nombre })),
-])
+const cargoOptions = computed(() =>
+  state.cargos.map((cargo) => ({ value: cargo, label: cargo })),
+)
 
 function submit(close) {
-  const username = form.value.username.trim()
-  if (!username || !form.value.password) return
+  const dni = form.value.dni.trim()
+  if (!dni || !form.value.password) return
   addEmpleado({
-    username,
+    dni,
     first_name: form.value.first.trim(),
     last_name: form.value.last.trim(),
     email: form.value.email.trim(),
-    municipalidad_id: form.value.municipalidad ? Number(form.value.municipalidad) : undefined,
+    cargo: form.value.cargo,
     is_superuser: form.value.superuser,
   })
   close()
@@ -66,21 +65,12 @@ function submit(close) {
         novalidate
         @submit.prevent="submit(close)"
       >
-        <div data-flow-item data-input-label="Usuario">
+        <div data-flow-item data-input-label="DNI">
           <input
-            v-model="form.username"
+            v-model="form.dni"
             type="text"
             class="style-2"
-            name="emp-username"
-            required
-          />
-        </div>
-        <div data-flow-item data-input-label="Contraseña">
-          <input
-            v-model="form.password"
-            type="password"
-            class="style-2"
-            name="emp-password"
+            name="emp-dni"
             required
           />
         </div>
@@ -110,13 +100,23 @@ function submit(close) {
             name="emp-email"
           />
         </div>
-        <div data-flow-item data-input-label="Municipalidad">
+        <div data-flow-item data-input-label="Contraseña">
+          <input
+            v-model="form.password"
+            type="password"
+            class="style-2"
+            name="emp-password"
+            required
+          />
+        </div>
+        <div data-flow-item data-input-label="Cargo">
           <div class="asyncstate-data">
             <SelectFlip
-              v-model="form.municipalidad"
-              name="emp-municipalidad"
+              v-model="form.cargo"
+              name="emp-cargo"
               scope="3020d431"
-              :options="muniOptions"
+              placeholder="Selecciona un cargo"
+              :options="cargoOptions"
               :option-height="52"
             />
           </div>

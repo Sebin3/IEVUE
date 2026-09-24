@@ -14,7 +14,7 @@ const { navStyle } = useNavStyle()
 
 const navItems = [
   { page: 'inicio', icon: 'home', label: 'Inicio' },
-  { page: 'movimientos', icon: 'table_rows', label: 'Movimientos' },
+  { page: 'movimientos', icon: 'table_rows', label: 'Trámites' },
   { page: 'sedes', icon: 'domain', label: 'Estudiantes  ' },
   { page: 'empleados', icon: 'badge', label: 'Empleados' },
   { page: 'intenciones', icon: 'next_plan', label: 'Intenciones', desktopOnly: true },

@@ -1,8 +1,4 @@
 <script setup>
-/**
- * MODAL: confirmar borrado de movimiento — index.html createDeleteConfirmModal
- * (3417-3444).
- */
 import FlipModal from './FlipModal.vue'
 
 defineProps({
@@ -21,15 +17,15 @@ const emit = defineEmits(['close', 'confirm'])
     @close="emit('close')"
   >
     <template #default="{ close }">
-      <div data-v-28392b8b class="simple-container direction-column gap-16">
+      <div data-v-28392b8b class="simple-container direction-column text-gradient gap-16">
         <span
           data-v-28392b8b
           class="display-small weight-600 title line-height-1"
           data-shared-item="title"
-          >Eliminar movimiento</span
+          >Eliminar trámite</span
         >
         <span data-v-28392b8b class="body-large">
-          ¿Estas seguro(a) de que deseas eliminar este movimiento?
+          ¿Estas seguro(a) de que deseas eliminar este trámite?
         </span>
       </div>
       <div data-v-28392b8b class="simple-container justify-right gap-8">

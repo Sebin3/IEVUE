@@ -1,9 +1,4 @@
 <script setup>
-/**
- * Modal de Opciones (index.html: createOptionsModal, lineas 2460-2507).
- * Nace del boton #optionsBtn del nav; usa `no-backdrop` + ventana `mini
- * style-translucent-inverted`, no la ventana grande de los demas modales.
- */
 import FlipModal from './FlipModal.vue'
 import { useRouter } from 'vue-router'
 

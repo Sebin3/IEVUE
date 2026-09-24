@@ -20,7 +20,7 @@ const COLUMNS = [
   ['DNI', (t) => t.dni || ''],
   ['Ciudadano', (t) => t.nombre_ciudadano || ''],
   ['Tramite', (t) => t.tipo_tramite || ''],
-  ['Municipalidad', (t) => t.municipalidad_nombre || ''],
+  ['Salón y sección', (t) => t.salon_seccion || ''],
   ['Prioridad', (t) => t.prioridad_ia || ''],
   ['Estado', (t) => t.estado || ''],
   ['Resolucion', (t) => t.resolucion_admin || ''],
@@ -39,7 +39,7 @@ function exportCsv(close) {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `movimientos-${new Date().toISOString().slice(0, 10)}.csv`
+  a.download = `tramites-${new Date().toISOString().slice(0, 10)}.csv`
   a.click()
   URL.revokeObjectURL(url)
   close()

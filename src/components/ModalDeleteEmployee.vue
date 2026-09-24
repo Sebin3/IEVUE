@@ -34,7 +34,8 @@ function confirm() {
           >Eliminar empleado</span
         >
         <span data-v-28392b8b class="body-large">
-          ¿Estas seguro(a) de que deseas eliminar a <strong>{{ empleado?.username }}</strong>?
+          ¿Estas seguro(a) de que deseas eliminar al empleado con DNI
+          <strong>{{ empleado?.dni }}</strong>?
         </span>
       </div>
       <div data-v-28392b8b class="simple-container justify-right gap-8">

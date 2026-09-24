@@ -2,25 +2,28 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.ico" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+    <meta name="theme-color" content="#141313" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content"
     />
-    <title>Gob.pe</title>
+    <title>Laney</title>
 
-    <!-- Material Web Components: define <md-icon>, <md-ripple>, <md-menu>... -->
+    <!-- Material Web Components <md-icon>, <md-ripple>, <md-menu>... -->
     <script src="/bundle.js"></script>
 
     <style id="app-theme">
-      /* Tema por defecto vacio - se carga desde localStorage inmediatamente */
     </style>
 
-    <!-- Cargar tema INMEDIATAMENTE para evitar parpadeo -->
     <script>
       (function () {
-        var saved = localStorage.getItem('currentTheme')
-        if (!saved) return
+        var saved = localStorage.getItem('currentTheme') || 'gray'
         var allowed = [
           'gray',
           'black',
@@ -41,8 +44,6 @@
           .then(function (css) {
             var el = document.getElementById('app-theme')
             el.textContent = css
-            // El tema debe ser lo ultimo del <head> para ganarle a frontend.css
-            // (igual que en index.html original).
             document.head.appendChild(el)
           })
           .catch(function (err) {

@@ -41,7 +41,7 @@
 .switch-slider {
     width: 44px;
     height: 24px;
-    border-radius: 12px;
+    border-radius: 0 24px 24px 0;
     background: var(--md-sys-color-surface-variant, #ccc);
     position: relative;
     transition: background 0.2s;
@@ -131,6 +131,334 @@
     color: var(--md-sys-color-error);
 }
 
+/* ── Colores de prioridad y estado según el tema ── */
+#movementsTable .priority-critical,
+#movementsMobile .priority-label.priority-critical,
+#movementsTable .status-rejected,
+#movementsMobile .status-rejected {
+    color: var(--md-sys-color-error) !important;
+}
+
+#movementsTable .priority-high,
+#movementsMobile .priority-label.priority-high,
+#movementsTable .status-pending,
+#movementsMobile .status-pending {
+    color: var(--md-sys-color-tertiary) !important;
+}
+
+#movementsTable .priority-medium,
+#movementsMobile .priority-label.priority-medium,
+#movementsTable .status-review,
+#movementsMobile .status-review {
+    color: var(--md-sys-color-secondary) !important;
+}
+
+#movementsTable .priority-low,
+#movementsMobile .priority-label.priority-low,
+#movementsTable .status-completed,
+#movementsMobile .status-completed {
+    color: var(--md-sys-color-primary) !important;
+}
+
+#movementsTable .priority-critical,
+#movementsTable .priority-high,
+#movementsTable .priority-medium,
+#movementsTable .priority-low,
+#movementsTable .status-pending,
+#movementsTable .status-review,
+#movementsTable .status-completed,
+#movementsTable .status-rejected,
+#movementsMobile .priority-label.priority-critical,
+#movementsMobile .priority-label.priority-high,
+#movementsMobile .priority-label.priority-medium,
+#movementsMobile .priority-label.priority-low,
+#movementsMobile .status-pending,
+#movementsMobile .status-review,
+#movementsMobile .status-completed,
+#movementsMobile .status-rejected {
+    background: transparent !important;
+}
+
+/* En el modal se conserva el fondo liquid glass original de .dataline;
+   solo cambia el color del texto según la prioridad o el estado. */
+.dataline.priority-critical,
+.dataline.status-rejected {
+    color: var(--md-sys-color-error);
+}
+
+.dataline.priority-high,
+.dataline.status-pending {
+    color: var(--md-sys-color-tertiary);
+}
+
+.dataline.priority-medium,
+.dataline.status-review {
+    color: var(--md-sys-color-secondary);
+}
+
+.dataline.priority-low,
+.dataline.status-completed {
+    color: var(--md-sys-color-primary);
+}
+
+/* Las clases globales antiguas de estado les asignan un fondo sólido.
+   En el modal deben conservar el fondo liquid glass de .dataline. */
+.dataline.status-pending,
+.dataline.status-completed {
+    background: var(--md-sys-color-surface-container-low);
+}
+
+.dataline.priority-critical .outline-text,
+.dataline.priority-high .outline-text,
+.dataline.priority-medium .outline-text,
+.dataline.priority-low .outline-text {
+    color: inherit;
+}
+
+/* ── Tabla de movimientos: adaptación sin scroll horizontal ──
+   La tabla conserva sus columnas, pero distribuye el ancho disponible y
+   recorta únicamente el contenido que no cabe. La vista móvil existente no
+   se reemplaza ni cambia de estructura. */
+@media only screen and (min-width: 681px) {
+    #movementsTable {
+        width: 100%;
+        min-width: 0;
+        overflow: hidden;
+    }
+
+    #movementsTable > table.style-1 {
+        width: 100%;
+        min-width: 0;
+        table-layout: fixed;
+    }
+
+    #movementsTable > table.style-1 th,
+    #movementsTable > table.style-1 td {
+        min-width: 0;
+        max-width: none;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    #movementsTable > table.style-1 th:nth-child(1),
+    #movementsTable > table.style-1 td:nth-child(1) { width: 9%; }
+    #movementsTable > table.style-1 th:nth-child(2),
+    #movementsTable > table.style-1 td:nth-child(2) { width: 8%; }
+    #movementsTable > table.style-1 th:nth-child(3),
+    #movementsTable > table.style-1 td:nth-child(3) { width: 10%; }
+    #movementsTable > table.style-1 th:nth-child(4),
+    #movementsTable > table.style-1 td:nth-child(4) { width: 16%; }
+    #movementsTable > table.style-1 th:nth-child(5),
+    #movementsTable > table.style-1 td:nth-child(5) { width: 17%; }
+    #movementsTable > table.style-1 th:nth-child(6),
+    #movementsTable > table.style-1 td:nth-child(6) { width: 15%; }
+    #movementsTable > table.style-1 th:nth-child(7),
+    #movementsTable > table.style-1 td:nth-child(7) { width: 10%; }
+    #movementsTable > table.style-1 th:nth-child(8),
+    #movementsTable > table.style-1 td:nth-child(8) { width: 10%; }
+    #movementsTable > table.style-1 th:nth-child(9),
+    #movementsTable > table.style-1 td:nth-child(9) { width: 5%; }
+
+    #movementsTable > table.style-1 .chip {
+        max-width: 100%;
+        overflow: hidden;
+    }
+
+    #movementsTable > table.style-1 .chip-name {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    #movementsTable > table.style-1 .amount {
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+}
+
+@media only screen and (max-width: 680px) {
+    #empleadosMobile {
+        width: 100%;
+        min-width: 0;
+        gap: 8px;
+    }
+
+    #empleadosMobile .employee-row {
+        box-sizing: border-box;
+        display: flex;
+        align-items: center;
+        min-width: 0;
+        gap: 12px;
+        padding: 8px;
+        border-radius: 24px;
+        background: var(--md-sys-color-background);
+        cursor: pointer;
+        transition: background 0.2s ease;
+    }
+
+    #empleadosMobile .employee-row:hover {
+        background: var(--md-sys-color-surface-container-low);
+    }
+
+    #empleadosMobile .employee-avatar {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 48px;
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: var(--md-sys-color-surface-container);
+        color: var(--md-sys-color-on-surface);
+    }
+
+    #empleadosMobile .employee-avatar md-icon {
+        --md-icon-size: 24px;
+    }
+
+    #empleadosMobile .employee-details {
+        display: flex;
+        min-width: 0;
+        flex: 1 1 auto;
+        flex-direction: column;
+        gap: 4px;
+        overflow: hidden;
+    }
+
+    #empleadosMobile .employee-name,
+    #empleadosMobile .employee-cargo {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    #empleadosMobile .employee-row-status {
+        flex: 0 0 auto;
+    }
+
+    #empleadosMobile .employee-status {
+        flex: 0 0 auto;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+
+    #empleadosMobile .employee-status-active {
+        background: var(--md-sys-color-primary-container);
+        color: var(--md-sys-color-on-primary-container);
+    }
+
+    #empleadosMobile .employee-status-inactive {
+        background: var(--md-sys-color-surface-container-high);
+        color: var(--md-sys-color-on-surface-variant);
+    }
+
+    #movementsMobile .priority-label {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 64px;
+        width: 64px;
+        min-height: 64px;
+        box-sizing: border-box;
+        padding: 4px;
+        border-radius: 32px;
+        background: var(--md-sys-color-surface-container);
+        color: var(--md-sys-color-on-surface);
+        font-size: 11px;
+        font-weight: 500;
+        line-height: 1.1;
+        text-align: center;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    #movementsMobile .priority-label md-icon {
+        --md-icon-size: 24px;
+        color: var(--md-sys-color-on-surface) !important;
+        flex: 0 0 auto;
+    }
+
+    /* min-width: 0 es necesario para que el flex-item pueda encogerse sin
+       alterar la composición visual actual de las tarjetas móviles. */
+    #movementsMobile .description-container {
+        min-width: 0;
+    }
+
+    #movementsMobile .description-text {
+        min-width: 0;
+        overflow: hidden;
+    }
+
+    #movementsMobile .description-text > span {
+        display: block;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    #movementsMobile .amount {
+        flex: 0 0 auto;
+        max-width: 112px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}
+
+@media only screen and (min-width: 681px) {
+    #empleadosTable {
+        width: 100%;
+        min-width: 0;
+        overflow: hidden;
+    }
+
+    #empleadosTable > table.style-1 {
+        width: 100%;
+        min-width: 0;
+        table-layout: fixed;
+    }
+
+    #empleadosTable > table.style-1 th,
+    #empleadosTable > table.style-1 td {
+        min-width: 0;
+        max-width: none;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    #empleadosTable > table.style-1 th:nth-child(1),
+    #empleadosTable > table.style-1 td:nth-child(1) { width: 12%; }
+    #empleadosTable > table.style-1 th:nth-child(2),
+    #empleadosTable > table.style-1 td:nth-child(2) { width: 17%; }
+    #empleadosTable > table.style-1 th:nth-child(3),
+    #empleadosTable > table.style-1 td:nth-child(3) { width: 24%; }
+    #empleadosTable > table.style-1 th:nth-child(4),
+    #empleadosTable > table.style-1 td:nth-child(4) { width: 18%; }
+    #empleadosTable > table.style-1 th:nth-child(5),
+    #empleadosTable > table.style-1 td:nth-child(5) { width: 9%; }
+    #empleadosTable > table.style-1 th:nth-child(6),
+    #empleadosTable > table.style-1 td:nth-child(6) { width: 8%; }
+    #empleadosTable > table.style-1 th:nth-child(7),
+    #empleadosTable > table.style-1 td:nth-child(7) { width: 12%; }
+
+    #empleadosTable > table.style-1 th:last-child,
+    #empleadosTable > table.style-1 td:last-child {
+        text-align: right;
+    }
+
+    #empleadosTable > table.style-1 td:last-child > .simple-container {
+        min-width: 0;
+        gap: 4px;
+    }
+}
+
 /* ── Estado vacio (lo usan varias paginas) ── */
 .empty-data {
     display: flex;
@@ -144,6 +472,178 @@
 }
 .empty-data md-icon {
     font-size: 40px;
+}
+
+.dni-search-row {
+    position: relative;
+    display: block;
+    min-width: 0;
+}
+
+.dni-search-row input {
+    width: 100%;
+    min-width: 0;
+    padding-right: 64px;
+    border-radius: 12px;
+}
+
+.dni-search-row button {
+    position: absolute;
+    top: 0;
+    right: 0;
+    box-sizing: border-box;
+    width: 48px;
+    height: 64px;
+    min-height: 64px;
+    padding: 0 !important;
+    border: 0;
+    border-radius: 0 12px 12px 0;
+    background: transparent;
+    box-shadow: none !important;
+}
+
+.dni-message {
+    display: block;
+    margin-top: 4px;
+}
+
+/* ── Selectores de fecha y hora del modal Crear trámite ── */
+.date-time-fields {
+    align-items: flex-start;
+}
+
+.date-time-field {
+    flex: 1;
+    min-width: 0;
+}
+
+.date-picker-control,
+.time-picker-control {
+    position: relative;
+    min-width: 0;
+}
+
+.date-picker-control > input,
+.time-picker-control > input {
+    width: 100%;
+    min-width: 0;
+    padding-right: 48px;
+    cursor: pointer;
+}
+
+.date-picker-icon,
+.time-picker-icon {
+    --md-icon-size: 18px;
+    position: absolute;
+    top: 50%;
+    right: 14px;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: var(--md-sys-color-outline);
+}
+
+.picker-content {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+}
+
+.date-picker-popup,
+.time-picker-popup {
+    width: 100%;
+    max-width: none;
+    box-sizing: border-box;
+    padding: 12px 20px 20px;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+.date-picker-popup .calendar-header {
+    padding: 4px 0 10px;
+}
+
+.date-picker-popup .month-label {
+    padding: 8px 8px 8px 4px;
+    font-size: 15px;
+    font-weight: 600;
+    text-transform: capitalize;
+    white-space: nowrap;
+}
+
+.date-picker-popup .nav-buttons {
+    gap: 2px;
+}
+
+.date-picker-popup .nav-btn {
+    width: 36px;
+    height: 36px;
+}
+
+.date-picker-popup .calendar-grid {
+    gap: 3px;
+}
+
+.date-picker-popup .day {
+    min-width: 0;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    font-family: var(--app-main-font, sans-serif);
+    font-variant-numeric: tabular-nums;
+}
+
+.date-picker-popup .day.selected {
+    font-size: 16px;
+}
+
+.time-picker-popup.time-picker[data-v-b437f2ac] {
+    width: 100%;
+    gap: 12px;
+    padding: 12px 0 0;
+}
+
+.time-picker-popup .time-chip {
+    min-width: 60px;
+    padding: 8px 14px;
+    font-size: 36px;
+}
+
+.time-picker-popup .colon {
+    font-size: 36px;
+}
+
+.time-picker-popup .period-chip {
+    min-width: 52px;
+    padding: 9px 16px;
+    font-size: 15px;
+}
+
+.time-picker-popup .clock-option {
+    cursor: pointer;
+}
+
+.time-picker-popup .num-cell {
+    pointer-events: all;
+    cursor: pointer;
+}
+
+.time-picker-popup .dial-wrapper {
+    width: min(280px, 100%);
+    height: 280px;
+    max-height: none;
+}
+
+@media only screen and (max-width: 680px) {
+    .date-picker-popup,
+    .time-picker-popup {
+        padding-right: 16px;
+        padding-left: 16px;
+    }
+
+    .time-picker-popup .dial-wrapper {
+        height: min(280px, calc(100vw - 64px));
+    }
 }
 
 /* ── Login ── */

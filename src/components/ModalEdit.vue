@@ -15,29 +15,51 @@ const emit = defineEmits(['close'])
 
 const { updateTramite, deleteTramite } = useStore()
 
-const PRIO_EMOJI = { Critica: '🔴', Alta: '🟠', Media: '🟡', Baja: '🟢' }
-const ESTADO_EMOJI = { Pendiente: '⏳', 'En Revision': '👀', Finalizado: '✅' }
-
 const finalized = computed(() => props.tramite?.estado === 'Finalizado')
 
 const estado = ref(props.tramite?.estado || 'Pendiente')
+const prioridad = ref(props.tramite?.prioridad_ia || 'Media')
 const resolucion = ref(props.tramite?.resolucion_admin || '')
 
-const estadoOptions = [
-  { value: 'Pendiente', label: `${ESTADO_EMOJI.Pendiente} Pendiente` },
-  { value: 'En Revision', label: `${ESTADO_EMOJI['En Revision']} En Revisión` },
-  { value: 'Finalizado', label: `${ESTADO_EMOJI.Finalizado} Finalizado` },
+const prioridadOptions = [
+  { value: 'Critica', label: 'Crítica' },
+  { value: 'Alta', label: 'Alta' },
+  { value: 'Media', label: 'Media' },
+  { value: 'Baja', label: 'Baja' },
 ]
 
-const prioLabel = computed(
-  () => `${PRIO_EMOJI[props.tramite?.prioridad_ia] || '⚪'} ${props.tramite?.prioridad_ia || ''}`,
-)
+const estadoOptions = [
+  { value: 'Pendiente', label: 'Pendiente' },
+  { value: 'En Revision', label: 'En Revisión' },
+  { value: 'Finalizado', label: 'Finalizado' },
+  { value: 'Rechazado', label: 'Rechazado' },
+]
+
+const prioLabel = computed(() => {
+  const option = prioridadOptions.find((item) => item.value === prioridad.value)
+  return option?.label || prioridad.value
+})
+
+const priorityClasses = {
+  Critica: 'priority-critical',
+  Alta: 'priority-high',
+  Media: 'priority-medium',
+  Baja: 'priority-low',
+}
+
+const statusClasses = {
+  Pendiente: 'status-pending',
+  'En Revision': 'status-review',
+  Finalizado: 'status-completed',
+  Rechazado: 'status-rejected',
+}
 
 const confirmDelete = useModal()
 
 function save(close) {
   if (props.tramite) {
     updateTramite(props.tramite.id, {
+      prioridad_ia: prioridad.value,
       estado: estado.value,
       resolucion_admin: resolucion.value.trim(),
     })
@@ -54,7 +76,7 @@ function onDeleted(close) {
 <template>
   <FlipModal :origin="origin" content-height="693px" @close="emit('close')">
     <template #default="{ close }">
-      <div class="content-box background outline-with-shadow-light padding-8">
+      <div class="content-box background padding-8">
         <div class="simple-container justify-between">
           <button
             class="style-7 for-icon small rounded surface-container outline-text close-edit-modal-btn"
@@ -71,16 +93,16 @@ function onDeleted(close) {
             <md-icon class="filled" aria-hidden="true">delete</md-icon>
           </button>
         </div>
-        <div class="simple-container direction-column grow-1 padding-16">
-          <span class="display-small weight-500">{{ tramite?.tipo_tramite }}</span>
+        <div class="simple-container direction-column grow-1 padding-16 text-center gap-8">
+          <span class="text-gradient display-small weight-500">{{ tramite?.tipo_tramite }}</span>
           <span class="body-large">{{ tramite?.nombre_ciudadano }}</span>
           <div class="simple-container gap-8 flex-wrap" style="margin-top: 16px">
-            <div class="dataline">
+            <div class="dataline" :class="priorityClasses[prioridad]">
               <span class="body-medium outline-text">{{ prioLabel }}</span>
             </div>
-            <div class="dataline">
+            <div class="dataline" :class="statusClasses[tramite?.estado]">
               <span class="body-medium">
-                {{ ESTADO_EMOJI[tramite?.estado] || '⚪' }} {{ tramite?.estado }}
+                {{ tramite?.estado }}
               </span>
             </div>
           </div>
@@ -103,6 +125,16 @@ function onDeleted(close) {
           />
         </div>
 
+        <div data-flow-item data-input-label="Salón y sección">
+          <input
+            type="text"
+            class="style-2"
+            name="salon-seccion"
+            readonly
+            :value="tramite?.salon_seccion || ''"
+          />
+        </div>
+
         <div data-flow-item data-input-label="Descripción">
           <textarea
             class="style-2"
@@ -114,7 +146,14 @@ function onDeleted(close) {
         </div>
 
         <div data-flow-item data-input-label="Prioridad">
-          <input type="text" class="style-2" name="prioridad" readonly :value="prioLabel" />
+          <div class="asyncstate-data">
+            <SelectFlip
+              v-model="prioridad"
+              name="prioridad"
+              placeholder="Selecciona una prioridad"
+              :options="prioridadOptions"
+            />
+          </div>
         </div>
 
         <div data-flow-item data-input-label="Estado">

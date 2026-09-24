@@ -2,6 +2,8 @@
 import { computed, ref } from 'vue'
 import FlipModal from './FlipModal.vue'
 import SelectFlip from './SelectFlip.vue'
+import ModalDeleteEmployee from './ModalDeleteEmployee.vue'
+import { useModal } from '../composables/useModal'
 import { useStore } from '../stores/data'
 
 const props = defineProps({
@@ -11,36 +13,41 @@ const props = defineProps({
 
 const emit = defineEmits(['close'])
 
-const { state, updateEmpleado } = useStore()
+const { state, updateEmpleado, deleteEmpleado } = useStore()
+const confirmDelete = useModal()
 
 const partes = (props.empleado?.nombres || '').split(' ')
 
 const form = ref({
-  username: props.empleado?.username || '',
-  password: '',
+  dni: props.empleado?.dni || '',
   first: partes[0] || '',
   last: partes.slice(1).join(' ') || '',
   email: props.empleado?.email || '',
-  municipalidad: props.empleado?.municipalidad_id ? String(props.empleado.municipalidad_id) : '',
+  password: '',
+  cargo: props.empleado?.cargo || '',
   superuser: !!props.empleado?.is_superuser,
 })
 
-const muniOptions = computed(() => [
-  { value: '', label: 'Todas (Supervisor)' },
-  ...state.municipalidades.map((m) => ({ value: String(m.id), label: m.nombre })),
-])
+const cargoOptions = computed(() =>
+  state.cargos.map((cargo) => ({ value: cargo, label: cargo })),
+)
 
 function submit(close) {
   if (props.empleado) {
     updateEmpleado(props.empleado.id, {
-      username: form.value.username.trim(),
+      dni: form.value.dni.trim(),
       first_name: form.value.first.trim(),
       last_name: form.value.last.trim(),
       email: form.value.email.trim(),
-      municipalidad_id: form.value.municipalidad ? Number(form.value.municipalidad) : undefined,
+      cargo: form.value.cargo,
       is_superuser: form.value.superuser,
     })
   }
+  close()
+}
+
+function onDeleted(close) {
+  if (props.empleado) deleteEmpleado(props.empleado.id)
   close()
 }
 </script>
@@ -57,6 +64,13 @@ function submit(close) {
             <md-ripple aria-hidden="true"></md-ripple>
             <md-icon class="filled" aria-hidden="true">close</md-icon>
           </button>
+          <button
+            class="style-7 for-icon small rounded surface-container outline-text delete-emp-btn"
+            @click="confirmDelete.show"
+          >
+            <md-ripple aria-hidden="true"></md-ripple>
+            <md-icon class="filled" aria-hidden="true">delete</md-icon>
+          </button>
         </div>
         <div class="simple-container direction-column grow-1 padding-16 text-center">
           <span class="display-medium weight-600 line-height-1 text-gradient">Editar empleado</span>
@@ -69,17 +83,8 @@ function submit(close) {
         novalidate
         @submit.prevent="submit(close)"
       >
-        <div data-flow-item data-input-label="Usuario">
-          <input v-model="form.username" type="text" class="style-2" name="emp-username" required />
-        </div>
-        <div data-flow-item data-input-label="Contraseña (dejar vacío para mantener)">
-          <input
-            v-model="form.password"
-            type="password"
-            class="style-2"
-            name="emp-password"
-            placeholder="••••••••"
-          />
+        <div data-flow-item data-input-label="DNI">
+          <input v-model="form.dni" type="text" class="style-2" name="emp-dni" required />
         </div>
         <div class="simple-container gap-8">
           <div data-flow-item data-input-label="Nombres" style="flex: 1">
@@ -92,13 +97,22 @@ function submit(close) {
         <div data-flow-item data-input-label="Email">
           <input v-model="form.email" type="email" class="style-2" name="emp-email" />
         </div>
-        <div data-flow-item data-input-label="Municipalidad">
+        <div data-flow-item data-input-label="Contraseña (dejar vacío para mantener)">
+          <input
+            v-model="form.password"
+            type="password"
+            class="style-2"
+            name="emp-password"
+          />
+        </div>
+        <div data-flow-item data-input-label="Cargo">
           <div class="asyncstate-data">
             <SelectFlip
-              v-model="form.municipalidad"
-              name="emp-municipalidad"
+              v-model="form.cargo"
+              name="emp-cargo"
               scope="3020d431"
-              :options="muniOptions"
+              placeholder="Selecciona un cargo"
+              :options="cargoOptions"
               :option-height="52"
             />
           </div>
@@ -139,6 +153,14 @@ function submit(close) {
           </div>
         </div>
       </form>
+
+      <ModalDeleteEmployee
+        v-if="confirmDelete.open.value"
+        :origin="confirmDelete.origin.value"
+        :empleado="empleado"
+        @confirm="onDeleted(close)"
+        @close="confirmDelete.hide"
+      />
     </template>
   </FlipModal>
 </template>

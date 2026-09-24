@@ -1,13 +1,4 @@
 <script setup>
-/**
- * SelectFlip
- * Puerto de openSelectModal()/closeSelectModal() de index.html (4271-4625):
- * un input readonly que al pulsarse se "estira" hasta convertirse en una
- * ventanita con las opciones, y al elegir vuelve a colapsar sobre el input.
- *
- * El chevron/calendario/reloj se pasa por el slot `icon`; si no se pasa, se usa
- * el chevron que index.html pone en los selects (data-v-3020d431).
- */
 import { ref, computed, nextTick } from 'vue'
 import { gsap, Flip, customEase } from '../composables/useGsap'
 
