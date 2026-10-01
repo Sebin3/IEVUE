@@ -23,6 +23,209 @@
     z-index: 1 !important;
 }
 
+/* Filas seleccionables del modulo de estudiantes en vista movil. */
+#studentsMobile {
+    width: 100%;
+    min-width: 0;
+    gap: 8px;
+}
+
+#studentsMobile .student-row {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    gap: 12px;
+    padding: 8px;
+    border-radius: 24px;
+    background: var(--md-sys-color-background);
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+#studentsMobile .student-row:hover {
+    background: var(--md-sys-color-surface-container-low);
+}
+
+#studentsMobile .student-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 48px;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--md-sys-color-surface-container);
+    color: var(--md-sys-color-on-surface);
+}
+
+#studentsMobile .student-avatar md-icon {
+    --md-icon-size: 24px;
+}
+
+#studentsMobile .student-details {
+    display: flex;
+    min-width: 0;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 4px;
+    overflow: hidden;
+}
+
+#studentsMobile .student-name,
+#studentsMobile .student-section {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#studentsMobile .student-status {
+    flex: 0 0 auto;
+    padding: 4px 10px;
+    border-radius: 12px;
+    background: var(--md-sys-color-primary-container);
+    color: var(--md-sys-color-on-primary-container);
+    font-size: 12px;
+    font-weight: 500;
+}
+
+@media only screen and (min-width: 681px) {
+    .modal-window.student-side-panel {
+        max-width: 600px !important;
+        min-height: 971px !important;
+        max-height: 971px !important;
+    }
+
+    #studentsTable {
+        width: 100%;
+        min-width: 0;
+        overflow: hidden;
+    }
+
+    #studentsTable > table.style-1 {
+        width: 100%;
+        min-width: 0;
+        max-width: 100%;
+        table-layout: fixed;
+    }
+
+    #studentsTable > table.style-1 th,
+    #studentsTable > table.style-1 td {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    #studentsTable > table.style-1 th:nth-child(1),
+    #studentsTable > table.style-1 td:nth-child(1) { width: 7%; }
+    #studentsTable > table.style-1 th:nth-child(2),
+    #studentsTable > table.style-1 td:nth-child(2) { width: 11%; }
+    #studentsTable > table.style-1 th:nth-child(3),
+    #studentsTable > table.style-1 td:nth-child(3) { width: 21%; }
+    #studentsTable > table.style-1 th:nth-child(4),
+    #studentsTable > table.style-1 td:nth-child(4) { width: 28%; }
+    #studentsTable > table.style-1 th:nth-child(5),
+    #studentsTable > table.style-1 td:nth-child(5) { width: 15%; }
+    #studentsTable > table.style-1 th:nth-child(6),
+    #studentsTable > table.style-1 td:nth-child(6) { width: 10%; }
+    #studentsTable > table.style-1 th:nth-child(7),
+    #studentsTable > table.style-1 td:nth-child(7) {
+        width: 48px;
+        text-align: right;
+    }
+
+#studentsTable .student-table-row {
+    cursor: pointer;
+}
+
+#studentsTable .amount {
+    width: fit-content;
+    font-size: inherit;
+    font-weight: 500;
+    text-wrap: nowrap;
+}
+
+#studentsTable .amount.plain.positive {
+    color: var(--md-sys-color-primary);
+}
+}
+
+.student-identity-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+}
+
+.student-qr-card,
+.student-code-card,
+.student-dni-card,
+.student-phone-card {
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+.student-qr-card {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 320px;
+    flex-direction: column;
+    gap: 8px;
+    text-align: center;
+}
+
+.student-qr-download {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+}
+
+.student-qr-icon {
+    --md-icon-size: 96px;
+    color: var(--md-sys-color-outline);
+}
+
+.student-dni-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.student-phone-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.student-identity-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+}
+
+.student-code-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.student-dni-field {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+}
+
+@media only screen and (min-width: 681px) {
+    .student-identity-grid {
+        grid-template-columns: 320px minmax(0, 1fr);
+        align-items: start;
+    }
+}
+
 /* Los modales van encima de todo */
 .modal-backdrop[data-v-c84aa51e] {
     z-index: 10000 !important;

@@ -10,23 +10,28 @@ import { useStore } from '../stores/data'
 
 const props = defineProps({
   origin: { type: Object, default: null },
-  // 'movimientos' | 'empleados'
+  // 'movimientos' | 'empleados' | 'estudiantes'
   scope: { type: String, default: 'movimientos' },
 })
 
 const emit = defineEmits(['close'])
 
-const { state, setQuery, setEmpQuery } = useStore()
+const { state, setQuery, setEmpQuery, setStudentQuery } = useStore()
 
 const isEmpleados = computed(() => props.scope === 'empleados')
+const isEstudiantes = computed(() => props.scope === 'estudiantes')
 
 const query = computed({
-  get: () => (isEmpleados.value ? state.empQuery : state.query),
-  set: (v) => (isEmpleados.value ? setEmpQuery(v) : setQuery(v)),
+  get: () => (isEmpleados.value ? state.empQuery : isEstudiantes.value ? state.studentQuery : state.query),
+  set: (v) => {
+    if (isEmpleados.value) setEmpQuery(v)
+    else if (isEstudiantes.value) setStudentQuery(v)
+    else setQuery(v)
+  },
 })
 
 const placeholder = computed(() =>
-  isEmpleados.value ? 'Busca un empleado' : 'Busca un trámite',
+  isEmpleados.value ? 'Busca un empleado' : isEstudiantes.value ? 'Busca un estudiante' : 'Busca un trámite',
 )
 
 const inputEl = ref(null)
@@ -35,9 +40,7 @@ const inputEl = ref(null)
 onMounted(() => {
   window.setTimeout(() => inputEl.value?.focus(), 700)
 })
-onUnmounted(() => {
-  query.value = ''
-})
+onUnmounted(() => { query.value = '' })
 </script>
 
 <template>

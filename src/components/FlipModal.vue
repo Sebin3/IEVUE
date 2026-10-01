@@ -137,6 +137,7 @@ function openAnimation() {
     const wBounds = windowState.elementStates[0].bounds
     const isMobile = window.innerWidth < 680
     const hasIncreased = G.classList.contains('increased')
+    const isSidePanel = G.classList.contains('side-panel')
 
     Object.assign(X.style, {
       width: `${wBounds.width}px`,
@@ -154,14 +155,18 @@ function openAnimation() {
       const padding = isMobile ? 16 : 8
       const centerX = bounds.left + (bounds.right - bounds.left) / 2
       const centerY = bounds.top + (bounds.bottom - bounds.top) / 2
-      const left = Math.max(
-        padding,
-        Math.min(centerX - wBounds.width / 2, window.innerWidth - wBounds.width - padding),
-      )
-      const top = Math.max(
-        padding,
-        Math.min(centerY - wBounds.height / 2, window.innerHeight - wBounds.height - padding),
-      )
+      const left = isSidePanel
+        ? Math.max(padding, window.innerWidth - wBounds.width - padding)
+        : Math.max(
+            padding,
+            Math.min(centerX - wBounds.width / 2, window.innerWidth - wBounds.width - padding),
+          )
+      const top = isSidePanel
+        ? padding
+        : Math.max(
+            padding,
+            Math.min(centerY - wBounds.height / 2, window.innerHeight - wBounds.height - padding),
+          )
       Object.assign(X.style, {
         position: 'absolute',
         top: `${Math.round(top)}px`,

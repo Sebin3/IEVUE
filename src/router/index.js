@@ -20,12 +20,15 @@ const routes = [
     component: () => import('../pages/MovimientosPage.vue'),
     meta: { requiresAuth: true },
   },
-  // Sedes (mapa Leaflet) e Intenciones no se portaron: el nav las muestra
-  // igual que index.html y ambas caen en la pagina puente.
+  {
+    path: '/estudiantes',
+    name: 'estudiantes',
+    component: () => import('../pages/EstudiantesPage.vue'),
+    meta: { requiresAuth: true },
+  },
   {
     path: '/sedes',
-    name: 'sedes',
-    component: () => import('../pages/PlaceholderPage.vue'),
+    redirect: { name: 'estudiantes' },
     meta: { requiresAuth: true },
   },
   {
@@ -35,8 +38,14 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
-    path: '/intenciones',
-    name: 'intenciones',
+    path: '/asistencias',
+    name: 'asistencias',
+    component: () => import('../pages/PlaceholderPage.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/calendario',
+    name: 'calendario',
     component: () => import('../pages/PlaceholderPage.vue'),
     meta: { requiresAuth: true },
   },

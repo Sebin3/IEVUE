@@ -94,7 +94,7 @@ function onDeleted(close) {
             <input v-model="form.last" type="text" class="style-2" name="emp-last" />
           </div>
         </div>
-        <div data-flow-item data-input-label="Email">
+        <div data-flow-item data-input-label="Correo Institucional">
           <input v-model="form.email" type="email" class="style-2" name="emp-email" />
         </div>
         <div data-flow-item data-input-label="Contraseña (dejar vacío para mantener)">

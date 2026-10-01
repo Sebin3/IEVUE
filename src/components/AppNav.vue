@@ -15,9 +15,10 @@ const { navStyle } = useNavStyle()
 const navItems = [
   { page: 'inicio', icon: 'home', label: 'Inicio' },
   { page: 'movimientos', icon: 'table_rows', label: 'Trámites' },
-  { page: 'sedes', icon: 'domain', label: 'Estudiantes  ' },
+  { page: 'estudiantes', icon: 'school', label: 'Estudiantes' },
   { page: 'empleados', icon: 'badge', label: 'Empleados' },
-  { page: 'intenciones', icon: 'next_plan', label: 'Intenciones', desktopOnly: true },
+  { page: 'asistencias', icon: 'assignment_ind', label: 'Asistencias', desktopOnly: true },
+  { page: 'calendario', icon: 'calendar_month', label: 'Calendario', desktopOnly: true },
 ]
 
 const options = useModal()

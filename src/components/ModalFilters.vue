@@ -9,13 +9,16 @@ import FlipModal from './FlipModal.vue'
 import SelectFlip from './SelectFlip.vue'
 import { useStore } from '../stores/data'
 
-defineProps({
+const props = defineProps({
   origin: { type: Object, default: null },
+  scope: { type: String, default: 'movimientos' },
 })
 
 const emit = defineEmits(['close'])
 
-const { state, setFilter } = useStore()
+const { state, setFilter, setStudentFilter } = useStore()
+
+const isStudents = computed(() => props.scope === 'estudiantes')
 
 const MESES = [
   'Enero',
@@ -73,6 +76,27 @@ const month = bind('month')
 const year = bind('year')
 const prioridad = bind('prioridad')
 const estado = bind('estado')
+
+function bindStudent(key) {
+  return computed({
+    get: () => state.studentFilters[key],
+    set: (v) => setStudentFilter(key, v),
+  })
+}
+
+const studentEstado = bindStudent('estado')
+const studentSalon = bindStudent('salon')
+
+const studentEstadoOptions = [
+  { value: '', label: 'Todos' },
+  { value: 'Activo', label: 'Activo' },
+  { value: 'Inactivo', label: 'Inactivo' },
+]
+
+const studentSalonOptions = [
+  { value: '', label: 'Todos' },
+  ...['1A', '1B', '2A', '2B', '3A'].map((salon) => ({ value: salon, label: salon })),
+]
 </script>
 
 <template>
@@ -96,7 +120,7 @@ const estado = bind('estado')
       </div>
 
       <div class="simple-container direction-column gap-8 padding-16">
-        <div class="simple-container direction-column gap-16">
+        <div v-if="!isStudents" class="simple-container direction-column gap-16">
           <div class="simple-container direction-column gap-8">
             <span class="label-large outline-text">Fecha</span>
             <div class="simple-container gap-8">
@@ -140,6 +164,28 @@ const estado = bind('estado')
               :width="312"
             />
           </div>
+        </div>
+        <div v-else class="simple-container direction-column gap-16">
+            <div class="simple-container direction-column gap-8">
+              <span class="label-large outline-text">Salón y sección</span>
+              <SelectFlip
+                v-model="studentSalon"
+                name="student-salon-filter"
+                scope="3020d431"
+                :options="studentSalonOptions"
+                :width="312"
+              />
+            </div>
+            <div class="simple-container direction-column gap-8">
+              <span class="label-large outline-text">Estado</span>
+              <SelectFlip
+                v-model="studentEstado"
+                name="student-status-filter"
+                scope="3020d431"
+                :options="studentEstadoOptions"
+                :width="312"
+              />
+            </div>
         </div>
       </div>
     </template>

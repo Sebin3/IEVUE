@@ -92,7 +92,7 @@ function submit(close) {
             />
           </div>
         </div>
-        <div data-flow-item data-input-label="Email">
+        <div data-flow-item data-input-label="Correo Institucional">
           <input
             v-model="form.email"
             type="email"

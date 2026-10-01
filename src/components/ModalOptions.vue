@@ -35,13 +35,25 @@ function reloadApp() {
         <button
           data-v-396f88b5
           class="only-on-mobile style-7 transparent justify-left outline-text h-padding-16 big rounded"
-          @click="router.push({ name: 'intenciones' }), close()"
+          @click="router.push({ name: 'asistencias' }), close()"
         >
           <md-ripple aria-hidden="true"></md-ripple>
           <span class="body-large">
-            <md-icon class="dynamic filled" aria-hidden="true">next_plan</md-icon>
+            <md-icon class="dynamic filled" aria-hidden="true">event_available</md-icon>
           </span>
-          <span class="button-label">Intenciones</span>
+          <span class="button-label">Asistencias</span>
+        </button>
+
+        <button
+          data-v-396f88b5
+          class="only-on-mobile style-7 transparent justify-left outline-text h-padding-16 big rounded"
+          @click="router.push({ name: 'calendario' }), close()"
+        >
+          <md-ripple aria-hidden="true"></md-ripple>
+          <span class="body-large">
+            <md-icon class="dynamic filled" aria-hidden="true">calendar_month</md-icon>
+          </span>
+          <span class="button-label">Calendario</span>
         </button>
 
         <button

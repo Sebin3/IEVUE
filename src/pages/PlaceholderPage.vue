@@ -1,9 +1,4 @@
 <script setup>
-/**
- * Pagina puente para Sedes e Intenciones: el nav las muestra igual que
- * index.html, pero el mapa (Leaflet) y las intenciones quedan fuera de este
- * porte. Se usa el mismo estado vacio que el resto de paginas.
- */
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 
@@ -12,10 +7,12 @@ const route = useRoute()
 const info = computed(() =>
   route.name === 'sedes'
     ? { title: 'Estudiantes', icon: 'domain', text: 'El Apartado de Estudiantes no está disponible todavía' }
+    : route.name === 'calendario'
+      ? { title: 'Calendario', icon: 'calendar_month', text: 'No se encontraron eventos en el calendario' }
     : {
-        title: 'Intenciones',
-        icon: 'next_plan',
-        text: 'No se encontraron intenciones',
+        title: 'Asistencias',
+        icon: 'assignment_ind',
+        text: 'No se encontraron Asistencias',
       },
 )
 </script>

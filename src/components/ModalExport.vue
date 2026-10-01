@@ -6,14 +6,18 @@
  */
 import FlipModal from './FlipModal.vue'
 import { useStore } from '../stores/data'
+import { computed } from 'vue'
 
-defineProps({
+const props = defineProps({
   origin: { type: Object, default: null },
+  scope: { type: String, default: 'movimientos' },
 })
 
 const emit = defineEmits(['close'])
 
-const { filteredTramites } = useStore()
+const { filteredTramites, filteredEstudiantes } = useStore()
+
+const isStudents = computed(() => props.scope === 'estudiantes')
 
 const COLUMNS = [
   ['Fecha', (t) => new Date(t.fecha_creacion).toLocaleString('es-PE')],
@@ -26,20 +30,31 @@ const COLUMNS = [
   ['Resolucion', (t) => t.resolucion_admin || ''],
 ]
 
+const STUDENT_COLUMNS = [
+  ['Código', (student) => student.codigo_alumno || ''],
+  ['DNI', (student) => student.dni || ''],
+  ['Nombre y apellido', (student) => student.nombres || ''],
+  ['Correo Institucional', (student) => student.correo_institucional || ''],
+  ['Salón y sección', (student) => student.salon_seccion || ''],
+  ['Estado', (student) => student.estado || ''],
+]
+
 function cell(value) {
   return `"${String(value).replace(/"/g, '""')}"`
 }
 
 function exportCsv(close) {
+  const columns = isStudents.value ? STUDENT_COLUMNS : COLUMNS
+  const items = isStudents.value ? filteredEstudiantes.value : filteredTramites.value
   const rows = [
-    COLUMNS.map(([header]) => cell(header)).join(','),
-    ...filteredTramites.value.map((t) => COLUMNS.map(([, get]) => cell(get(t))).join(',')),
+    columns.map(([header]) => cell(header)).join(','),
+    ...items.map((item) => columns.map(([, get]) => cell(get(item))).join(',')),
   ]
   const blob = new Blob(['﻿' + rows.join('\r\n')], { type: 'text/csv;charset=utf-8;' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `tramites-${new Date().toISOString().slice(0, 10)}.csv`
+  a.download = `${isStudents.value ? 'estudiantes' : 'tramites'}-${new Date().toISOString().slice(0, 10)}.csv`
   a.click()
   URL.revokeObjectURL(url)
   close()
