@@ -6,7 +6,7 @@ defineProps({
   origin: { type: Object, default: null },
 })
 
-const emit = defineEmits(['close', 'appearance', 'logout'])
+const emit = defineEmits(['close', 'appearance', 'settings', 'logout'])
 
 const router = useRouter()
 
@@ -59,7 +59,7 @@ function reloadApp() {
         <button
           data-v-396f88b5
           class="style-7 transparent justify-left outline-text h-padding-16 big rounded"
-          @click="close()"
+          @click.stop="emit('settings', $event)"
         >
           <md-ripple aria-hidden="true"></md-ripple>
           <span class="body-large">

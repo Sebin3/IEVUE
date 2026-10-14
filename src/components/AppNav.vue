@@ -3,9 +3,9 @@ import { useRoute, useRouter } from 'vue-router'
 import { useNavStyle } from '../composables/useNavStyle'
 import { useModal } from '../composables/useModal'
 import { useAuthStore } from '../stores/auth'
-import EscudoPeru from './EscudoPeru.vue'
 import ModalOptions from './ModalOptions.vue'
 import ModalAppearance from './ModalAppearance.vue'
+import SettingsModal from './SettingsModal.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -15,14 +15,15 @@ const { navStyle } = useNavStyle()
 const navItems = [
   { page: 'inicio', icon: 'home', label: 'Inicio' },
   { page: 'movimientos', icon: 'table_rows', label: 'Trámites' },
-  { page: 'estudiantes', icon: 'school', label: 'Estudiantes' },
+  { page: 'estudiantes', icon: 'groups', label: 'Estudiantes' },
   { page: 'empleados', icon: 'badge', label: 'Empleados' },
   { page: 'asistencias', icon: 'assignment_ind', label: 'Asistencias', desktopOnly: true },
-  { page: 'calendario', icon: 'calendar_month', label: 'Calendario', desktopOnly: true },
+  { page: 'calendario', icon: 'calendar_view_month', label: 'Calendario', desktopOnly: true },
 ]
 
 const options = useModal()
 const appearance = useModal()
+const settings = useModal()
 
 function go(page) {
   if (route.name !== page) router.push({ name: page })
@@ -38,8 +39,8 @@ function logout() {
   <nav id="appNav" class="app-nav mobile-style-1" :class="navStyle">
     <button class="nav-button first-button">
       <md-ripple aria-hidden="true"></md-ripple>
-      <EscudoPeru />
-      <span style="flex-grow: 1"></span>
+      <img class="app-nav-logo" src="/icons/S-nav.svg?v=2" alt="" width="24" height="24" />
+      <span class="nav-name app-nav-brand">Peruano Suizo</span>
       <md-icon class="dynamic" aria-hidden="true">expand_all</md-icon>
     </button>
 
@@ -71,6 +72,7 @@ function logout() {
   <ModalOptions
     v-if="options.open.value"
     :origin="options.origin.value"
+    @settings="settings.show"
     @appearance="appearance.show"
     @logout="logout"
     @close="options.hide"
@@ -79,5 +81,10 @@ function logout() {
     v-if="appearance.open.value"
     :origin="appearance.origin.value"
     @close="appearance.hide"
+  />
+  <SettingsModal
+    v-if="settings.open.value"
+    :origin="settings.origin.value"
+    @close="settings.hide"
   />
 </template>

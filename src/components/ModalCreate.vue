@@ -1,10 +1,11 @@
 <script setup>
-import { ref } from 'vue'
+import { nextTick, ref } from 'vue'
 import FlipModal from './FlipModal.vue'
 import SelectFlip from './SelectFlip.vue'
 import DatePicker from './DatePicker.vue'
 import TimePicker from './TimePicker.vue'
 import { useStore } from '../stores/data'
+import { toast } from 'super-beautiful-toast'
 
 defineProps({
   origin: { type: Object, default: null },
@@ -66,7 +67,7 @@ function buscarEmpleado() {
   dniMessage.value = ''
 }
 
-function submit(close) {
+async function submit(close, event) {
   const dni = form.value.dni.trim()
   const nombres = form.value.nombres.trim()
   const apellidos = form.value.apellidos.trim()
@@ -85,13 +86,20 @@ function submit(close) {
       prioridad_ia: 'Media',
       estado: 'Pendiente',
     })
+    toast.success('Trámite creado', { icon: null, origin: event?.submitter ?? null })
+    await nextTick()
     close()
   }
 }
 </script>
 
 <template>
-  <FlipModal :origin="origin" content-height="693px" @close="emit('close')">
+  <FlipModal
+    :origin="origin"
+    content-height="693px"
+    close-strategy="container-only"
+    @close="emit('close')"
+  >
     <template #default="{ close }">
       <div class="content-box background padding-8 text-center">
         <div class="simple-container justify-between">
@@ -112,7 +120,7 @@ function submit(close) {
         class="simple-container direction-column gap-16"
         autocomplete="off"
         novalidate
-        @submit.prevent="submit(close)"
+        @submit.prevent="submit(close, $event)"
       >
         <div data-flow-item data-input-label="DNI">
           <div class="dni-search-row">

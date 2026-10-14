@@ -9,6 +9,7 @@ import './assets/styles/iconstyle.css'
 import './assets/styles/font-geist-mono.css'
 import './assets/styles/font-dm-sans.css'
 import './assets/styles/frontend.css'
+import 'super-beautiful-toast/style.css'
 import './assets/styles/patches.css'
 
 const app = createApp(App)

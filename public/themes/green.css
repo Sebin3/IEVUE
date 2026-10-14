@@ -1,6 +1,11 @@
 /* Tema Green - Verde */
 /* Usado por defecto en frontend.css y modal-demo.html */
 
+:root, :host {
+    --ievue-calendar-event-background: #006e2c;
+    --ievue-calendar-event-foreground: #ffffff;
+}
+
 @media (prefers-color-scheme: light) {
     :root, :host {
         --md-sys-color-background: #f1fded;

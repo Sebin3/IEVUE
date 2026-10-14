@@ -1,6 +1,11 @@
 /* Tema Black - Negro/Blanco puro */
 /* Usado en sbMoney.html */
 
+:root, :host {
+    --ievue-calendar-event-background: #000000;
+    --ievue-calendar-event-foreground: #ffffff;
+}
+
 @media (prefers-color-scheme: light) {
     :root, :host {
         --md-sys-color-background: #fbf9fc;

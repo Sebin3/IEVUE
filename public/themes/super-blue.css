@@ -1,5 +1,10 @@
 /* Tema Super-blue - Super Blue */
 
+:root, :host {
+    --ievue-calendar-event-background: #0028db;
+    --ievue-calendar-event-foreground: #ffffff;
+}
+
 @media (prefers-color-scheme: light) {
     :root, :host {
         --md-sys-color-background: #fbf8ff;

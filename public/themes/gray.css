@@ -1,6 +1,11 @@
 /* Tema Gray - Gris */
 /* Tonos neutros grises */
 
+:root, :host {
+    --ievue-calendar-event-background: #5d5f5f;
+    --ievue-calendar-event-foreground: #ffffff;
+}
+
 @media (prefers-color-scheme: light) {
     :root, :host {
         --md-sys-color-background: #fcf8f8;

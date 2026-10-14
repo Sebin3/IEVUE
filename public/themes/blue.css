@@ -1,5 +1,10 @@
 /* Tema Blue - Azul */
 
+:root, :host {
+    --ievue-calendar-event-background: #0045b2;
+    --ievue-calendar-event-foreground: #ffffff;
+}
+
 @media (prefers-color-scheme: light) {
     :root, :host {
         --md-sys-color-background: #faf8ff;

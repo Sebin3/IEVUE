@@ -22,6 +22,7 @@
 - [x] **T018:** Agregar el botón visual de descarga en la esquina superior derecha del contenedor QR y mantenerlo deshabilitado hasta generar un QR real.
 - [x] **T019:** Separar el formulario de edición en un modal contextual anclado al botón Editar, sin desplazar el panel de información y usando la estructura visual del modal de empleados.
 - [x] **T020:** Corregir la fila inferior de acciones para mantener X y Guardar en una misma línea, igual que en el modal de edición de empleados.
+- [x] **T028:** En móvil, abrir Nuevo estudiante, Buscar, Filtros y Exportar desde el modal FLIP del botón de tres puntos; apilar los modales de destino sobre el menú y mantener la barra de escritorio.
 
 ## Pendientes de decisión
 

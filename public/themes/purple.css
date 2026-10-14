@@ -1,5 +1,10 @@
 /* Tema Purple - Purple */
 
+:root, :host {
+    --ievue-calendar-event-background: #5e00d0;
+    --ievue-calendar-event-foreground: #ffffff;
+}
+
 @media (prefers-color-scheme: light) {
     :root, :host {
         --md-sys-color-background: #fef7ff;

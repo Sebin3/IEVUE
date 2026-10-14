@@ -1,10 +1,11 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import FlipModal from './FlipModal.vue'
 import SelectFlip from './SelectFlip.vue'
 import ModalDeleteEmployee from './ModalDeleteEmployee.vue'
 import { useModal } from '../composables/useModal'
 import { useStore } from '../stores/data'
+import { toast } from 'super-beautiful-toast'
 
 const props = defineProps({
   origin: { type: Object, default: null },
@@ -32,7 +33,7 @@ const cargoOptions = computed(() =>
   state.cargos.map((cargo) => ({ value: cargo, label: cargo })),
 )
 
-function submit(close) {
+async function submit(close, event) {
   if (props.empleado) {
     updateEmpleado(props.empleado.id, {
       dni: form.value.dni.trim(),
@@ -42,7 +43,9 @@ function submit(close) {
       cargo: form.value.cargo,
       is_superuser: form.value.superuser,
     })
+    toast.success('Empleado actualizado', { icon: null, origin: event?.submitter ?? null })
   }
+  await nextTick()
   close()
 }
 
@@ -81,7 +84,7 @@ function onDeleted(close) {
         class="simple-container direction-column gap-16"
         autocomplete="off"
         novalidate
-        @submit.prevent="submit(close)"
+        @submit.prevent="submit(close, $event)"
       >
         <div data-flow-item data-input-label="DNI">
           <input v-model="form.dni" type="text" class="style-2" name="emp-dni" required />

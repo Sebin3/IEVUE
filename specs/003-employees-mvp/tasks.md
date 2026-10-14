@@ -7,6 +7,7 @@
 - [x] **T003:** Incorporar cargos escolares, incluyendo auxiliares.
 - [x] **T004:** Adaptar la presentación móvil para destacar el cargo.
 - [x] **T005:** Integrar creación, selección, edición, eliminación, búsqueda, filtros y exportación.
+- [x] **T011:** En móvil, abrir Crear empleado y Buscar desde el modal FLIP del botón de tres puntos; apilar el modal de destino sobre el menú y mantener la barra de escritorio.
 
 ## Pendientes de decisión
 

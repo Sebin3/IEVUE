@@ -67,6 +67,7 @@ function exportCsv(close) {
     window-class="semi-mini padding-8"
     content-class="simple-container direction-column gap-4"
     content-data-v="03f119c7 c84aa51e"
+    shared-items="icon name"
     @close="emit('close')"
   >
     <template #default="{ close }">

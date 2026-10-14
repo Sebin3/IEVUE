@@ -1,8 +1,9 @@
 <script setup>
-import { ref } from 'vue'
+import { nextTick, ref } from 'vue'
 import FlipModal from './FlipModal.vue'
 import SelectFlip from './SelectFlip.vue'
 import { useStore } from '../stores/data'
+import { toast } from 'super-beautiful-toast'
 
 defineProps({
   origin: { type: Object, default: null },
@@ -34,7 +35,7 @@ const statusOptions = [
   { value: 'Inactivo', label: 'Inactivo' },
 ]
 
-function submit(close) {
+async function submit(close, event) {
   if (!form.value.dni.trim() || !form.value.first.trim() || !form.value.last.trim()) return
   addEstudiante({
     dni: form.value.dni.trim(),
@@ -45,12 +46,19 @@ function submit(close) {
     salon_seccion: form.value.salon,
     estado: form.value.estado,
   })
+  toast.success('Estudiante creado', { icon: null, origin: event?.submitter ?? null })
+  await nextTick()
   close()
 }
 </script>
 
 <template>
-  <FlipModal :origin="origin" content-height="520px" @close="emit('close')">
+  <FlipModal
+    :origin="origin"
+    content-height="520px"
+    close-strategy="container-only"
+    @close="emit('close')"
+  >
     <template #default="{ close }">
       <div class="content-box background padding-8 text-center">
         <div class="simple-container justify-between">
@@ -68,7 +76,7 @@ function submit(close) {
         </div>
       </div>
 
-      <form class="simple-container direction-column gap-16" autocomplete="off" novalidate @submit.prevent="submit(close)">
+  <form class="simple-container direction-column gap-16" autocomplete="off" novalidate @submit.prevent="submit(close, $event)">
         <div data-flow-item data-input-label="DNI">
           <input v-model="form.dni" type="text" class="style-2" name="student-dni" required />
         </div>

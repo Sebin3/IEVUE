@@ -104,6 +104,8 @@ const studentSalonOptions = [
     :origin="origin"
     window-class="semi-mini h-auto padding-8"
     content-class="simple-container direction-column"
+    close-strategy="container-only"
+    shared-items="icon text"
     @close="emit('close')"
   >
     <template #default="{ close }">

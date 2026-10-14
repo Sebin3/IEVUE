@@ -11,6 +11,8 @@
 - [x] **T007:** Restringir en edición los campos que no deben modificarse.
 - [x] **T008:** Aplicar estados y prioridades compatibles con los temas visuales.
 - [x] **T009:** Actualizar los tipos y descripciones simuladas de trámites escolares.
+- [x] **T018:** Ampliar los datos simulados con trámites distribuidos en varias fechas para validar el calendario.
+- [x] **T019:** En móvil, abrir Crear trámite, Buscar, Filtros y Exportar desde el modal FLIP del botón de tres puntos; apilar los modales de destino sobre el menú y conservar la barra de escritorio.
 
 ## Pendientes de decisión
 

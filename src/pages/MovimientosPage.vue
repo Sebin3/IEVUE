@@ -8,6 +8,7 @@ import ModalEdit from '../components/ModalEdit.vue'
 import ModalSearch from '../components/ModalSearch.vue'
 import ModalFilters from '../components/ModalFilters.vue'
 import ModalExport from '../components/ModalExport.vue'
+import MobileActionMenu from '../components/MobileActionMenu.vue'
 
 const { filteredTramites } = useStore()
 
@@ -46,6 +47,20 @@ const statusClasses = {
   Rechazado: 'status-rejected',
 }
 
+const mobileActions = [
+  { id: 'create', label: 'Crear trámite', icon: 'add' },
+  { id: 'search', label: 'Buscar', icon: 'search' },
+  { id: 'filters', label: 'Filtros', icon: 'page_info' },
+  { id: 'export', label: 'Exportar', icon: 'download' },
+]
+
+function handleMobileAction(action, event) {
+  if (action === 'create') create.show(event)
+  if (action === 'search') search.show(event)
+  if (action === 'filters') filters.show(event)
+  if (action === 'export') exportModal.show(event)
+}
+
 function fecha(t) {
   return new Date(t.fecha_creacion).toLocaleDateString('es-PE', {
     day: 'numeric',
@@ -78,15 +93,10 @@ const grupos = computed(() => {
     <div class="simple-container direction-column gap-24 grow-1">
       <div class="app-header">
         <span class="display-medium weight-500 text-gradient">Trámites</span>
-        <div class="simple-container only-on-mobile">
-          <button
-            class="style-7 for-icon bigger rounded background outline-text"
-            @click="filters.show"
-          >
-            <md-ripple aria-hidden="true"></md-ripple>
-            <md-icon data-shared-item="addIcon" aria-hidden="true">more_vert</md-icon>
-          </button>
-        </div>
+        <MobileActionMenu
+          :actions="mobileActions"
+          @select="handleMobileAction"
+        />
         <div class="simple-container gap-8 hide-on-mobile">
           <button
             class="style-7 for-icon bigger hover-border-radius-round background outline-light-1 outline-text search-btn"
@@ -184,7 +194,7 @@ const grupos = computed(() => {
                   </th>
                   <th data-v-086fa15e>
                     <md-icon data-v-086fa15e class="dynamic filled" aria-hidden="true">
-                      notes
+                      person
                     </md-icon>
                     Nombre y Apellido
                   </th>
@@ -342,7 +352,11 @@ const grupos = computed(() => {
     </div>
   </div>
 
-  <ModalCreate v-if="create.open.value" :origin="create.origin.value" @close="create.hide" />
+  <ModalCreate
+    v-if="create.open.value"
+    :origin="create.origin.value"
+    @close="create.hide"
+  />
   <ModalEdit
     v-if="edit.open.value"
     :origin="edit.origin.value"

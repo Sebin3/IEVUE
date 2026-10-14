@@ -1,4 +1,9 @@
 /* Tema Brown - Marrón/Café */
+
+:root, :host {
+    --ievue-calendar-event-background: #944b00;
+    --ievue-calendar-event-foreground: #ffffff;
+}
 /* Colores tierra cálidos */
 
 @media (prefers-color-scheme: light) {

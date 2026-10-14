@@ -14,6 +14,9 @@ importers:
       pinia:
         specifier: ^4.0.2
         version: 4.0.3(@vue/devtools-api@8.2.1)(vue@3.5.42)
+      super-beautiful-toast:
+        specifier: ^0.1.0
+        version: 0.1.0(vue@3.5.42)
       vue:
         specifier: ^3.5.40
         version: 3.5.42
@@ -724,6 +727,14 @@ packages:
   source-map-js@1.2.1:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
     engines: {node: '>=0.10.0'}
+
+  super-beautiful-toast@0.1.0:
+    resolution: {integrity: sha512-BylJxtRH0ulID1BEkyYX5skqkUyl1TIrtTBCmcb2Z6+Ou9xGQObXSf8ko3U8apnoX++/PXUWCdN4/7PuqXfgoQ==}
+    peerDependencies:
+      vue: ^3.3.0
+    peerDependenciesMeta:
+      vue:
+        optional: true
 
   tinyglobby@0.2.17:
     resolution: {integrity: sha512-wXR/dYpcqKmfWpEdZjiKJOwCNFndD0DMnrW/cYjVGttEkBfVgcLFHoNrlj47mjOVic9yyNu65alsgF4NQyTa2g==}
@@ -1553,6 +1564,10 @@ snapshots:
       totalist: 3.0.1
 
   source-map-js@1.2.1: {}
+
+  super-beautiful-toast@0.1.0(vue@3.5.42):
+    optionalDependencies:
+      vue: 3.5.42
 
   tinyglobby@0.2.17:
     dependencies:

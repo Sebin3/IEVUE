@@ -1,5 +1,10 @@
 /* Tema Pastel-pink - Pastel Pink */
 
+:root, :host {
+    --ievue-calendar-event-background: #e891c9;
+    --ievue-calendar-event-foreground: #ffffff;
+}
+
 @media (prefers-color-scheme: light) {
     :root, :host {
         --md-sys-color-background: #FFF9FB;

@@ -7,6 +7,7 @@ import ModalCreateEmployee from '../components/ModalCreateEmployee.vue'
 import ModalEditEmployee from '../components/ModalEditEmployee.vue'
 import ModalDeleteEmployee from '../components/ModalDeleteEmployee.vue'
 import ModalSearch from '../components/ModalSearch.vue'
+import MobileActionMenu from '../components/MobileActionMenu.vue'
 
 const { filteredEmpleados } = useStore()
 
@@ -17,6 +18,16 @@ const search = useModal()
 
 const empleados = filteredEmpleados
 const hasData = computed(() => empleados.value.length > 0)
+
+const mobileActions = [
+  { id: 'create', label: 'Crear empleado', icon: 'add' },
+  { id: 'search', label: 'Buscar', icon: 'search' },
+]
+
+function handleMobileAction(action, event) {
+  if (action === 'create') create.show(event)
+  if (action === 'search') search.show(event)
+}
 
 const kpiTotal = computed(() => empleados.value.length)
 const kpiProfesores = computed(() => empleados.value.filter((e) => e.cargo === 'Profesor').length)
@@ -38,15 +49,10 @@ function registro(e) {
     <div class="simple-container direction-column gap-24 grow-1">
       <div class="app-header">
         <span class="display-medium weight-500 text-gradient">Empleados</span>
-        <div class="simple-container only-on-mobile">
-          <button
-            class="style-7 for-icon bigger rounded background outline-text"
-            @click="create.show"
-          >
-            <md-ripple aria-hidden="true"></md-ripple>
-            <md-icon data-shared-item="addIcon" aria-hidden="true">more_vert</md-icon>
-          </button>
-        </div>
+        <MobileActionMenu
+          :actions="mobileActions"
+          @select="handleMobileAction"
+        />
         <div class="simple-container gap-8 hide-on-mobile">
           <button
             class="style-7 for-icon bigger hover-border-radius-round background outline-light-1 outline-text search-btn-emp"
@@ -120,7 +126,7 @@ function registro(e) {
                   </th>
                   <th data-v-086fa15e>
                     <md-icon data-v-086fa15e class="dynamic filled" aria-hidden="true">
-                      badge
+                      person
                     </md-icon>
                     Nombre y apellido
                   </th>

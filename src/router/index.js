@@ -46,7 +46,7 @@ const routes = [
   {
     path: '/calendario',
     name: 'calendario',
-    component: () => import('../pages/PlaceholderPage.vue'),
+    component: () => import('../pages/CalendarPage.vue'),
     meta: { requiresAuth: true },
   },
   // Ruta comodin -> inicio. Se redirige por path y no por `name` para no

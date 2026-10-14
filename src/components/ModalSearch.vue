@@ -46,10 +46,13 @@ onUnmounted(() => { query.value = '' })
 <template>
   <FlipModal
     :origin="origin"
+    placement="left"
     backdrop-class="no-backdrop"
+    close-strategy="container-only"
     window-class="semi-mini padding-16 border-radius-24 outline-light-3"
     content-class="simple-container gap-0 align-center"
     content-data-v="4341c8dd c84aa51e"
+    shared-items="icon"
     @close="emit('close')"
   >
     <template #default="{ close }">

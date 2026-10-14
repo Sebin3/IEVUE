@@ -1,10 +1,11 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import FlipModal from './FlipModal.vue'
 import SelectFlip from './SelectFlip.vue'
 import ModalDelete from './ModalDelete.vue'
 import { useModal } from '../composables/useModal'
 import { useStore } from '../stores/data'
+import { toast } from 'super-beautiful-toast'
 
 const props = defineProps({
   origin: { type: Object, default: null },
@@ -56,19 +57,24 @@ const statusClasses = {
 
 const confirmDelete = useModal()
 
-function save(close) {
+async function save(close, event) {
   if (props.tramite) {
     updateTramite(props.tramite.id, {
       prioridad_ia: prioridad.value,
       estado: estado.value,
       resolucion_admin: resolucion.value.trim(),
     })
+    toast.success('Trámite actualizado', { icon: null, origin: event?.submitter ?? null })
   }
+  await nextTick()
   close()
 }
 
 function onDeleted(close) {
-  if (props.tramite) deleteTramite(props.tramite.id)
+  if (props.tramite) {
+    deleteTramite(props.tramite.id)
+    toast.success('Trámite eliminado', { icon: null })
+  }
   close()
 }
 </script>
@@ -113,7 +119,7 @@ function onDeleted(close) {
         class="simple-container direction-column gap-16"
         autocomplete="off"
         novalidate
-        @submit.prevent="save(close)"
+        @submit.prevent="save(close, $event)"
       >
         <div data-flow-item data-input-label="Tipo de Trámite">
           <input

@@ -2,6 +2,7 @@
 
 import FlipModal from './FlipModal.vue'
 import { useStore } from '../stores/data'
+import { toast } from 'super-beautiful-toast'
 
 const props = defineProps({
   origin: { type: Object, default: null },
@@ -13,7 +14,10 @@ const emit = defineEmits(['close'])
 const { deleteEmpleado } = useStore()
 
 function confirm() {
-  if (props.empleado) deleteEmpleado(props.empleado.id)
+  if (props.empleado) {
+    deleteEmpleado(props.empleado.id)
+    toast.success('Empleado eliminado', { icon: null })
+  }
 }
 </script>
 

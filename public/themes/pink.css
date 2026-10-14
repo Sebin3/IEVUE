@@ -1,5 +1,10 @@
 /* Tema Pink - Pink */
 
+:root, :host {
+    --ievue-calendar-event-background: #8900a3;
+    --ievue-calendar-event-foreground: #ffffff;
+}
+
 @media (prefers-color-scheme: light) {
     :root, :host {
         --md-sys-color-background: #fff7fa;

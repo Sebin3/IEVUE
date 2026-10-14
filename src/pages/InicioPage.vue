@@ -136,8 +136,8 @@ const filters = useModal()
             @click="filters.show"
           >
             <md-ripple data-v-1f02e176 aria-hidden="true"></md-ripple>
-            <md-icon data-v-1f02e176 class="dynamic" aria-hidden="true">page_info</md-icon>
-            <span data-v-1f02e176>Filtros</span>
+            <md-icon data-v-1f02e176 data-shared-item="icon" class="dynamic" aria-hidden="true">page_info</md-icon>
+            <span data-v-1f02e176 data-shared-item="text">Filtros</span>
           </button>
         </div>
       </div>

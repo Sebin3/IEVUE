@@ -1,9 +1,10 @@
 <script setup>
-import { ref } from 'vue'
+import { nextTick, ref } from 'vue'
 import FlipModal from './FlipModal.vue'
 import SelectFlip from './SelectFlip.vue'
 import ModalDeleteStudent from './ModalDeleteStudent.vue'
 import { useModal } from '../composables/useModal'
+import { toast } from 'super-beautiful-toast'
 
 const props = defineProps({
   origin: { type: Object, default: null },
@@ -57,7 +58,7 @@ function startEditing(event) {
   editModal.show(event)
 }
 
-function save(close) {
+async function save(close, event) {
   emit('save', {
     ...props.student,
     dni: form.value.dni.trim(),
@@ -67,11 +68,14 @@ function save(close) {
     salon_seccion: form.value.salon,
     estado: form.value.estado,
   })
+  toast.success('Estudiante actualizado', { icon: null, origin: event?.submitter ?? null })
+  await nextTick()
   close()
 }
 
 function onDeleted(close) {
   emit('delete', props.student?.codigo_alumno)
+  toast.success('Estudiante eliminado', { icon: null })
   close()
 }
 </script>
@@ -228,7 +232,7 @@ function onDeleted(close) {
         class="simple-container direction-column gap-16"
         autocomplete="off"
         novalidate
-        @submit.prevent="save(close)"
+        @submit.prevent="save(close, $event)"
       >
         <div data-flow-item data-input-label="Código">
           <input

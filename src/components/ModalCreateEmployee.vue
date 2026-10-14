@@ -1,8 +1,9 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import FlipModal from './FlipModal.vue'
 import SelectFlip from './SelectFlip.vue'
 import { useStore } from '../stores/data'
+import { toast } from 'super-beautiful-toast'
 
 defineProps({
   origin: { type: Object, default: null },
@@ -26,7 +27,7 @@ const cargoOptions = computed(() =>
   state.cargos.map((cargo) => ({ value: cargo, label: cargo })),
 )
 
-function submit(close) {
+async function submit(close, event) {
   const dni = form.value.dni.trim()
   if (!dni || !form.value.password) return
   addEmpleado({
@@ -37,12 +38,19 @@ function submit(close) {
     cargo: form.value.cargo,
     is_superuser: form.value.superuser,
   })
+  toast.success('Empleado creado', { icon: null, origin: event?.submitter ?? null })
+  await nextTick()
   close()
 }
 </script>
 
 <template>
-  <FlipModal :origin="origin" content-height="520px" @close="emit('close')">
+  <FlipModal
+    :origin="origin"
+    content-height="520px"
+    close-strategy="container-only"
+    @close="emit('close')"
+  >
     <template #default="{ close }">
       <div class="content-box background padding-8 text-center">
         <div class="simple-container justify-between">
@@ -63,7 +71,7 @@ function submit(close) {
         class="simple-container direction-column gap-16"
         autocomplete="off"
         novalidate
-        @submit.prevent="submit(close)"
+        @submit.prevent="submit(close, $event)"
       >
         <div data-flow-item data-input-label="DNI">
           <input

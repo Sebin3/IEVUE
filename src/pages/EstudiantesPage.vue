@@ -8,6 +8,8 @@ import ModalDeleteStudent from '../components/ModalDeleteStudent.vue'
 import ModalSearch from '../components/ModalSearch.vue'
 import ModalFilters from '../components/ModalFilters.vue'
 import ModalExport from '../components/ModalExport.vue'
+import MobileActionMenu from '../components/MobileActionMenu.vue'
+import { toast } from 'super-beautiful-toast'
 
 const { filteredEstudiantes, updateEstudiante, deleteEstudiante } = useStore()
 
@@ -30,6 +32,20 @@ const sections = computed(
   () => new Set(students.value.map((student) => student.salon_seccion).filter(Boolean)).size,
 )
 
+const mobileActions = [
+  { id: 'create', label: 'Nuevo estudiante', icon: 'add' },
+  { id: 'search', label: 'Buscar', icon: 'search' },
+  { id: 'filters', label: 'Filtros', icon: 'page_info' },
+  { id: 'export', label: 'Exportar', icon: 'download' },
+]
+
+function handleMobileAction(action, event) {
+  if (action === 'create') create.show(event)
+  if (action === 'search') search.show(event)
+  if (action === 'filters') filters.show(event)
+  if (action === 'export') exportModal.show(event)
+}
+
 function updateStudent(updatedStudent) {
   updateEstudiante(updatedStudent.codigo_alumno, updatedStudent)
 }
@@ -39,7 +55,8 @@ function deleteStudent(studentId) {
 }
 
 function confirmDeleteStudent() {
-  deleteStudent(remove.payload.value?.id)
+  deleteStudent(remove.payload.value?.codigo_alumno)
+  toast.success('Estudiante eliminado', { icon: null })
   remove.hide()
 }
 </script>
@@ -49,15 +66,10 @@ function confirmDeleteStudent() {
     <div class="simple-container direction-column gap-24 grow-1">
       <div class="app-header">
         <span class="display-medium weight-500 text-gradient">Estudiantes</span>
-        <div class="simple-container only-on-mobile">
-          <button
-            class="style-7 for-icon bigger rounded background outline-text"
-            @click="filters.show"
-          >
-            <md-ripple aria-hidden="true"></md-ripple>
-            <md-icon data-shared-item="addIcon" aria-hidden="true">more_vert</md-icon>
-          </button>
-        </div>
+        <MobileActionMenu
+          :actions="mobileActions"
+          @select="handleMobileAction"
+        />
         <div class="simple-container gap-8 hide-on-mobile">
           <button
             class="style-7 for-icon bigger hover-border-radius-round background outline-light-1 outline-text search-btn"
@@ -118,7 +130,7 @@ function confirmDeleteStudent() {
         <div class="asyncstate-data">
           <div v-if="!hasData" class="simple-container grow-1">
             <div class="content-box light-color grow-1 align-center justify-center padding-24">
-              <md-icon class="pretty-minimal outline-text" aria-hidden="true">school</md-icon>
+              <md-icon class="pretty-minimal outline-text" aria-hidden="true">groups</md-icon>
               <span class="headline-small weight-500 outline-text">
                 No hay estudiantes registrados
               </span>
@@ -151,7 +163,7 @@ function confirmDeleteStudent() {
                     Salón y sección
                   </th>
                   <th>
-                    <md-icon class="dynamic filled" aria-hidden="true">flag</md-icon>
+                    <md-icon class="dynamic filled" aria-hidden="true">toggle_on</md-icon>
                     Estado
                   </th>
                   <th aria-label="Acciones"></th>
