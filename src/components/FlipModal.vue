@@ -350,6 +350,10 @@ function enableFloatingInteractions() {
 
   const cornerPointerDown = (corner) => (event) => {
     if (!isFloating.value) return
+    // El ticker del arrastre sigue escribiendo la geometría mientras el panel
+    // termina de asentarse. Detenerlo antes de redimensionar evita que restaure
+    // el ancho/alto anteriores encima de los cambios del puntero.
+    stopFloatTicker()
     const startX = event.clientX
     const startY = event.clientY
     const direction = corner.dataset.floatCorner
@@ -409,7 +413,7 @@ function enableFloatingInteractions() {
     if (viewportWasMobile) {
       viewportWasMobile = false
       const width = Math.min(400, window.innerWidth - FLOAT_MARGIN * 2)
-      const height = Math.min(window.innerHeight * 0.8, window.innerHeight - FLOAT_MARGIN * 2)
+      const height = Math.min(971, window.innerHeight - FLOAT_MARGIN * 2)
       const docked = clampFloatingBounds({
         top: window.innerHeight - height - FLOAT_MARGIN,
         left: window.innerWidth - width - FLOAT_MARGIN,
