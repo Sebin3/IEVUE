@@ -4,7 +4,8 @@ export const navStyleOptions = [
   { style: 'style-2', label: 'Bonita' },
   { style: 'style-3', label: 'Dock' },
   { style: 'style-4', label: 'Guapa' },
-  { style: 'style-5', label: 'Simple' },
+  { style: 'style-6', label: 'Limpio' },
+  { style: 'style-7', label: 'Minimalista' },
 ]
 
 const valid = new Set(navStyleOptions.map((o) => o.style))

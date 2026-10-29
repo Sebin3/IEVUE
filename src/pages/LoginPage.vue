@@ -1,8 +1,4 @@
 <script setup>
-/**
- * PAGE: LOGIN — index.html lineas 366-416.
- * Con mocks: cualquier usuario/contrasena no vacios entran.
- */
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
@@ -10,16 +6,23 @@ import { useAuthStore } from '../stores/auth'
 const router = useRouter()
 const auth = useAuthStore()
 
-const username = ref('')
+const email = ref('')
 const password = ref('')
+const emailInvalid = ref(false)
+const passwordInvalid = ref(false)
 const error = ref('')
 const loading = ref(false)
 
 async function onSubmit() {
   error.value = ''
+  emailInvalid.value = !email.value.trim()
+  passwordInvalid.value = !password.value
+
+  if (emailInvalid.value || passwordInvalid.value) return
+
   loading.value = true
   try {
-    await auth.login(username.value, password.value)
+    await auth.login(email.value, password.value)
     router.push({ name: 'inicio' })
   } catch (e) {
     error.value = e.message || 'No se pudo iniciar sesión'
@@ -30,63 +33,97 @@ async function onSubmit() {
 </script>
 
 <template>
-  <div data-v-1f02e176 class="app-view align-center page-login">
-    <div
-      data-v-1f02e176
-      class="simple-container direction-column width-100 max-width-400 gap-24"
-    >
-      <div class="simple-container direction-column gap-16 align-center">
-        <md-icon class="pretty-minimal primary-text" style="font-size: 64px">
-          account_circle
-        </md-icon>
-        <span class="display-small weight-500">Iniciar Sesión</span>
-      </div>
-
-      <form id="loginForm" class="simple-container direction-column gap-16" @submit.prevent="onSubmit">
-        <div class="content-box light-color direction-column gap-8">
-          <label class="body-medium outline-text" for="username">Usuario</label>
-          <input
-            id="username"
-            v-model="username"
-            type="text"
-            class="style-1"
-            placeholder="Ingrese su usuario"
-            required
-          />
+  <main class="app-view page-login">
+    <div class="page-login-frame">
+      <section class="page-login-form-panel">
+        <div class="simple-container align-center gap-8 page-login-brand">
+          <img src="/icons/S-nav.svg?v=2" alt="" width="28" height="28" />
+          <span class="title-medium weight-500">Peruano Suizo</span>
         </div>
 
-        <div class="content-box light-color direction-column gap-8">
-          <label class="body-medium outline-text" for="password">Contraseña</label>
-          <input
-            id="password"
-            v-model="password"
-            type="password"
-            class="style-1"
-            placeholder="Ingrese su contraseña"
-            required
-          />
-        </div>
+        <div class="page-login-form-content">
+          <header class="simple-container direction-column gap-8 page-login-heading">
+            <h1 class="display-small weight-600">Bienvenido</h1>
+            <p class="body-large outline-text">
+              Ingresa tu correo y contraseña para acceder.
+            </p>
+          </header>
 
-        <div
-          v-if="error"
-          id="loginError"
-          class="content-box error-container gap-8 align-center"
-          role="alert"
-        >
-          <md-icon class="error-text">error</md-icon>
-          <span id="loginErrorText" class="body-medium error-text">{{ error }}</span>
-        </div>
+          <form
+            id="loginForm"
+            class="simple-container direction-column gap-16"
+            autocomplete="off"
+            novalidate
+            @submit.prevent="onSubmit"
+          >
+            <div data-flow-item data-input-label="Correo electrónico">
+              <input
+                id="login-email"
+                v-model="email"
+                type="email"
+                class="style-2"
+                name="login-email"
+                autocomplete="email"
+                inputmode="email"
+                :error="emailInvalid ? 'true' : undefined"
+                :aria-invalid="emailInvalid"
+                @input="emailInvalid = !email.trim()"
+                required
+              />
+            </div>
 
-        <button
-          id="loginBtn"
-          type="submit"
-          class="style-7 primary-container on-primary-container-text nice-button"
-          :disabled="loading"
-        >
-          <md-ripple aria-hidden="true"></md-ripple>
-          <span>{{ loading ? 'Ingresando...' : 'Ingresar' }}</span>
-        </button>
-      </form>
+            <div data-flow-item data-input-label="Contraseña">
+              <input
+                id="login-password"
+                v-model="password"
+                type="password"
+                class="style-2"
+                name="login-password"
+                autocomplete="current-password"
+                :error="passwordInvalid ? 'true' : undefined"
+                :aria-invalid="passwordInvalid"
+                @input="passwordInvalid = !password"
+                required
+              />
+            </div>
+
+            <div
+              v-if="error"
+              id="loginError"
+              class="content-box error-container gap-8 align-center"
+              role="alert"
+            >
+              <md-icon class="error-text">error</md-icon>
+              <span class="body-medium error-text">{{ error }}</span>
+            </div>
+
+            <div
+              class="container variant-translucent align-default"
+              data-v-6c7476fc
+              style="--buttons-container-gap: 0px; gap: 8px; --gradient-overflow: 16px;"
+            >
+              <button
+                id="loginBtn"
+                data-v-cdce7500
+                type="submit"
+                class="style-7 for-icon primary-container on-primary-container-text flex-1 bigger"
+                :disabled="loading"
+              >
+                <md-ripple data-v-cdce7500 aria-hidden="true"></md-ripple>
+                {{ loading ? 'Iniciando sesión…' : 'Iniciar sesión' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <aside class="page-login-visual" aria-hidden="true">
+        <div class="page-login-visual-orbit page-login-visual-orbit-one"></div>
+        <div class="page-login-visual-orbit page-login-visual-orbit-two"></div>
+        <div class="page-login-visual-mark">
+          <md-icon>school</md-icon>
+        </div>
+      </aside>
     </div>
-  </div>
+  </main>
 </template>

@@ -45,6 +45,8 @@
 - [x] **T049:** En móvil, abrir el detalle diario al tocar cualquier fecha completa, conservando el control de ampliar para escritorio.
 - [x] **T050:** Abrir el detalle diario al seleccionar cualquier fecha también en escritorio y reutilizar el mismo botón accesible de celda completa; validado en navegador en escritorio y móvil.
 - [x] **T051:** Igualar la tipografía del título mensual móvil al encabezado de las demás vistas, manteniendo toolbar y fecha legibles en anchos pequeños; validado con un mes largo.
+- [x] **T052:** Adaptar el tratamiento temático de los chips horarios del `frontend.css` a etiquetas compactas de solo lectura en la vista Agenda.
+- [x] **T053:** Adaptar al calendario mensual la navegación del `frontend.css`: flechas transparentes, hover de superficie temática y foco visible, conservando dimensiones responsive de IEVUE.
 
 ## Pendientes
 

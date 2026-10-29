@@ -92,7 +92,7 @@ const grupos = computed(() => {
   <div class="app-view">
     <div class="simple-container direction-column gap-24 grow-1">
       <div class="app-header">
-        <span class="display-medium weight-500 text-gradient">Trámites</span>
+        <h1 class="display-medium weight-500 text-gradient">Trámites</h1>
         <MobileActionMenu
           :actions="mobileActions"
           @select="handleMobileAction"

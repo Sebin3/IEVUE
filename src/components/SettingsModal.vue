@@ -1,17 +1,34 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import FlipModal from './FlipModal.vue'
+import { useAuthStore } from '../stores/auth'
 
 defineProps({
   origin: { type: Object, default: null },
 })
 
 const emit = defineEmits(['close'])
+const auth = useAuthStore()
 const selectedTab = ref('account')
 const isMobile = ref(typeof window !== 'undefined' && window.matchMedia('(max-width: 680px)').matches)
 let mobileQuery
 
-const selectedTabIndex = computed(() => tabs.findIndex((tab) => tab.id === selectedTab.value))
+const profileEmail = computed(() => auth.user?.email || auth.user?.correo || 'Sin correo vinculado')
+const profileName = computed(() => {
+  const fullName = [auth.user?.nombres, auth.user?.apellidos].filter(Boolean).join(' ').trim()
+  return fullName || auth.user?.nombre_completo || auth.username || 'Sin nombre'
+})
+
+const selectedTabOffset = computed(() => {
+  let offset = 0
+
+  for (const entry of navEntries) {
+    if (entry.type === 'tab' && entry.id === selectedTab.value) return offset
+    offset += entry.type === 'heading' ? 32 : 40
+  }
+
+  return 0
+})
 
 function syncViewport() {
   isMobile.value = mobileQuery?.matches ?? false
@@ -25,12 +42,23 @@ onMounted(() => {
 
 onBeforeUnmount(() => mobileQuery?.removeEventListener('change', syncViewport))
 
-const tabs = [
-  { id: 'account', label: 'Cuenta', icon: 'account_circle' },
-  { id: 'subscription', label: 'Suscripción', icon: 'rocket_launch' },
-  { id: 'general', label: 'General', icon: 'apps' },
-  { id: 'agent', label: 'Agente', icon: 'cognition_2' },
+const navEntries = [
+  { type: 'tab', id: 'account', label: 'Cuenta', icon: 'account_circle' },
+  { type: 'heading', id: 'clinic-heading', label: 'Administracion' },
+  { type: 'tab', id: 'clinic-profile', label: 'Mi Colegio', icon: 'home_work' },
+  { type: 'tab', id: 'members', label: 'Miembros', icon: 'group' },
+  { type: 'tab', id: 'roles', label: 'Roles', icon: 'badge' },
+  // { type: 'tab', id: 'activity', label: 'Actividad', icon: 'history' },
+  { type: 'heading', id: 'agenda-heading', label: 'Asistencias' },
+  { type: 'tab', id: 'appointments', label: 'Horarios', icon: 'schedule' },
+  { type: 'tab', id: 'availability', label: 'Disponibilidad', icon: 'event_available' },
+  // { type: 'heading', id: 'other-heading', label: 'Otras opciones' },
+  // { type: 'tab', id: 'subscription', label: 'Suscripción', icon: 'rocket_launch' },
+  // { type: 'tab', id: 'general', label: 'General', icon: 'apps' },
+  // { type: 'tab', id: 'agent', label: 'Agente', icon: 'cognition_2' },
 ]
+
+const tabs = navEntries.filter((entry) => entry.type === 'tab')
 
 function moveTab(event, direction) {
   const currentIndex = tabs.findIndex((tab) => tab.id === selectedTab.value)
@@ -74,30 +102,34 @@ function moveTab(event, direction) {
           :aria-orientation="isMobile ? 'horizontal' : 'vertical'"
           aria-label="Secciones de configuración"
           data-no-drag
-          :style="{ '--settings-tab-index': selectedTabIndex }"
+          :style="{ '--settings-tab-index': tabs.findIndex((tab) => tab.id === selectedTab), '--settings-tab-offset': `${selectedTabOffset}px` }"
         >
           <span class="pretty-tabs__indicator" aria-hidden="true"></span>
-          <button
-            v-for="tab in tabs"
-            :key="tab.id"
-            :id="`settings-tab-${tab.id}`"
-            :data-tab="tab.id"
-            type="button"
-            role="tab"
-            class="pretty-tabs__tab"
-            :class="{ active: selectedTab === tab.id }"
-            :aria-selected="selectedTab === tab.id"
-            :aria-controls="`settings-panel-${tab.id}`"
-            :tabindex="selectedTab === tab.id ? 0 : -1"
-            @click="selectedTab = tab.id"
-            @keydown.left.prevent="moveTab($event, -1)"
-            @keydown.right.prevent="moveTab($event, 1)"
-            @keydown.home.prevent="selectedTab = tabs[0].id"
-            @keydown.end.prevent="selectedTab = tabs[tabs.length - 1].id"
-          >
-            <md-icon aria-hidden="true">{{ tab.icon }}</md-icon>
-            <span>{{ tab.label }}</span>
-          </button>
+          <template v-for="entry in navEntries" :key="entry.id">
+            <span v-if="entry.type === 'heading'" class="settings-tab-section-label" aria-hidden="true">
+              {{ entry.label }}
+            </span>
+            <button
+              v-else
+              :id="`settings-tab-${entry.id}`"
+              :data-tab="entry.id"
+              type="button"
+              role="tab"
+              class="pretty-tabs__tab"
+              :class="{ active: selectedTab === entry.id }"
+              :aria-selected="selectedTab === entry.id"
+              :aria-controls="`settings-panel-${entry.id}`"
+              :tabindex="selectedTab === entry.id ? 0 : -1"
+              @click="selectedTab = entry.id"
+              @keydown.left.prevent="moveTab($event, -1)"
+              @keydown.right.prevent="moveTab($event, 1)"
+              @keydown.home.prevent="selectedTab = tabs[0].id"
+              @keydown.end.prevent="selectedTab = tabs[tabs.length - 1].id"
+            >
+              <md-icon aria-hidden="true">{{ entry.icon }}</md-icon>
+              <span>{{ entry.label }}</span>
+            </button>
+          </template>
         </div>
       </aside>
 
@@ -121,14 +153,14 @@ function moveTab(event, direction) {
             <div class="settings-account-details simple-container direction-column gap-16 z-index-1 padding-8 h-padding-24 t-padding-24">
               <div class="simple-container direction-column cursor-default">
                 <span class="title-large outline-text opacity-0-5">Correo</span>
-                <span class="headline-small max-width-100 text-overflow-ellipsis on-background-text">Sin correo vinculado</span>
+                <span class="headline-small max-width-100 text-overflow-ellipsis on-background-text">{{ profileEmail }}</span>
               </div>
               <div class="simple-container direction-column">
                 <span class="title-large outline-text cursor-default opacity-0-5">Nombre</span>
-                <span class="text-link text-link-translucent text-link-squared display-large max-width-100 width-fit-content text-overflow-ellipsis cursor-default outline-text">Sin nombre</span>
+                <span class="text-link text-link-translucent text-link-squared display-large max-width-100 width-fit-content text-overflow-ellipsis cursor-default outline-text">{{ profileName }}</span>
               </div>
             </div>
-            <div class="settings-account-status content-box transparent direction-row align-center gap-16 z-index-1">
+            <!-- <div class="settings-account-status content-box transparent direction-row align-center gap-16 z-index-1">
               <md-icon class="filled outline-text" aria-hidden="true">unsubscribe</md-icon>
               <div class="settings-status-copy simple-container direction-column gap-4 grow-1 cursor-default">
                 <span class="headline-small line-height-1 weight-500 opacity-0-8">Correo</span>
@@ -143,7 +175,7 @@ function moveTab(event, direction) {
                 <md-ripple aria-hidden="true"></md-ripple>
                 Verificar
               </button>
-            </div>
+            </div> -->
           </div>
         </div>
 

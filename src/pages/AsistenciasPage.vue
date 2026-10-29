@@ -1,0 +1,1428 @@
+<script setup>
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useModal } from '../composables/useModal'
+import { usePagination } from '../composables/usePagination'
+import FlipModal from '../components/FlipModal.vue'
+import ModalSearch from '../components/ModalSearch.vue'
+import ModalFilters from '../components/ModalFilters.vue'
+import MobileActionMenu from '../components/MobileActionMenu.vue'
+import PaginationControls from '../components/PaginationControls.vue'
+import { useStore } from '../stores/data'
+import { toast } from 'super-beautiful-toast'
+
+const { state } = useStore()
+const viewMode = ref('grid')
+const searchQuery = ref('')
+const attendanceSort = ref('date-desc')
+const attendanceMonth = ref('')
+const attendanceYear = ref('')
+const search = useModal()
+const filters = useModal()
+const details = useModal()
+const removeAttendance = useModal()
+const pendingAttendanceDeletion = ref(null)
+const isMobileDetailNav = ref(false)
+const activeDetailSection = ref('statistics')
+let attendanceDetailMediaQuery
+const attendanceGradeGroups = [
+  { grade: 'Primero', sections: ['1A', '1B', '1C', '1D', '1E'] },
+  { grade: 'Segundo', sections: ['2A', '2B', '2C', '2D', '2E'] },
+  { grade: 'Tercero', sections: ['3A', '3B', '3C', '3D', '3E'] },
+  { grade: 'Cuarto', sections: ['4A', '4B', '4C', '4D', '4E'] },
+  { grade: 'Quinto', sections: ['5A', '5B', '5C', '5D', '5E'] },
+]
+const simulatedFirstNames = [
+  'Alonso', 'Brenda', 'Carlos', 'Diana', 'Emilio',
+  'Fernanda', 'Gael', 'Hanna', 'Ian', 'Jimena',
+]
+const simulatedSurnames = [
+  'Alvarado', 'Benites', 'Cabrera', 'Delgado', 'Espinoza',
+  'Flores', 'Guzman', 'Herrera', 'Ibarra', 'Jimenez',
+  'Luna', 'Mendoza', 'Navarro', 'Ortega', 'Paredes',
+  'Quiroz', 'Ramos', 'Soto', 'Valdez', 'Zamora',
+]
+const SIMULATED_SECTION_ROSTER_SIZE = 20
+const attendanceArrivalTimes = [
+  '07:35 a. m.', '07:42 a. m.', '07:48 a. m.', '07:51 a. m.',
+  '07:56 a. m.', '08:02 a. m.', '08:06 a. m.', '08:12 a. m.',
+]
+const attendanceHourLabels = Array.from({ length: 10 }, (_, index) => {
+  const hour = index + 7
+  const displayHour = hour > 12 ? hour - 12 : hour
+  return `${displayHour}${hour < 12 ? 'am' : 'pm'}`
+})
+const simulatedHourlyAttendance = [
+  { interval: '7:00–8:00 a. m.', label: '7am', count: 80 },
+  { interval: '8:00–9:00 a. m.', label: '8am', count: 210 },
+  { interval: '9:00–10:00 a. m.', label: '9am', count: 300 },
+  { interval: '10:00–11:00 a. m.', label: '10am', count: 130 },
+  { interval: '11:00 a. m.–12:00 p. m.', label: '11am', count: 60 },
+  { interval: '12:00–1:00 p. m.', label: '12pm', count: 20 },
+  { interval: '1:00–2:00 p. m.', label: '1pm', count: 0 },
+  { interval: '2:00–3:00 p. m.', label: '2pm', count: 0 },
+  { interval: '3:00–4:00 p. m.', label: '3pm', count: 0 },
+  { interval: '4:00 p. m.', label: '4pm', count: 0 },
+]
+function formatAttendanceMinute(minuteOfDay) {
+  const hour24 = Math.floor(minuteOfDay / 60)
+  const minute = minuteOfDay % 60
+  const hour12 = hour24 % 12 || 12
+  const period = hour24 < 12 ? 'a. m.' : 'p. m.'
+  return `${hour12}:${String(minute).padStart(2, '0')} ${period}`
+}
+const selectedAttendancePointIndex = ref(null)
+const selectedAttendanceTooltipPosition = ref(null)
+const attendanceHourlyChartElement = ref(null)
+const attendanceHourlySvgElement = ref(null)
+const attendanceChartGeometry = computed(() => {
+  const values = details.payload.value?.hourlyAttendance ?? []
+  const width = 720
+  const height = 300
+  const plot = { left: 28, right: 692, top: 24, bottom: 238 }
+  const plotWidth = plot.right - plot.left
+  const plotHeight = plot.bottom - plot.top
+  const hourTicks = attendanceHourLabels.map((label, index) => ({
+    label,
+    x: plot.left + index * plotWidth / 9,
+  }))
+  const points = []
+  values.slice(0, -1).forEach((hour, hourIndex) => {
+    const minuteWeights = Array.from({ length: 60 }, (_, minute) => (
+      0.35
+      + (Math.sin(minute / 60 * Math.PI * 2 + hourIndex * 0.71) + 1) * 0.55
+      + (Math.sin(minute * 0.37 + hourIndex * 1.9) + 1) * 0.25
+      + ((minute + hourIndex * 11) % 17 === 0 ? 1 : 0)
+    ))
+    const totalWeight = minuteWeights.reduce((total, weight) => total + weight, 0)
+    const rawMinuteCounts = minuteWeights.map((weight) => hour.count * weight / totalWeight)
+    const minuteCounts = rawMinuteCounts.map(Math.floor)
+    const remainingArrivals = hour.count - minuteCounts.reduce((total, count) => total + count, 0)
+    const largestRemainders = rawMinuteCounts
+      .map((count, minute) => ({ minute, fraction: count - Math.floor(count) }))
+      .sort((left, right) => right.fraction - left.fraction)
+    largestRemainders.slice(0, remainingArrivals).forEach(({ minute }) => { minuteCounts[minute] += 1 })
+
+    minuteCounts.forEach((arrivalsThisMinute, minute) => {
+      const minuteOfDay = (hourIndex + 7) * 60 + minute
+      points.push({
+        interval: formatAttendanceMinute(minuteOfDay),
+        timeLabel: formatAttendanceMinute(minuteOfDay),
+        count: arrivalsThisMinute,
+        minuteOfDay,
+      })
+    })
+  })
+
+  points.push({
+    interval: '4:00 p. m.',
+    label: '4pm',
+    timeLabel: '4:00 p. m.',
+    count: 0,
+    minuteOfDay: 16 * 60,
+  })
+  const maxCount = Math.max(0, ...points.map(({ count }) => count))
+  const scaleMax = Math.max(10, Math.ceil(maxCount * 1.18))
+  points.forEach((point) => {
+    point.x = plot.left + ((point.minuteOfDay - 7 * 60) / (9 * 60)) * plotWidth
+    point.y = plot.bottom - point.count / scaleMax * plotHeight
+  })
+  const linePath = points.map(({ x, y }, index) => `${index === 0 ? 'M' : 'L'} ${x} ${y}`).join(' ')
+  const areaPath = points.length
+    ? `${linePath} L ${points.at(-1).x} ${plot.bottom} L ${points[0].x} ${plot.bottom} Z`
+    : ''
+  const peakIndex = values.reduce((bestIndex, point, index) => (
+    point.count > (values[bestIndex]?.count ?? -1) ? index : bestIndex
+  ), 0)
+
+  return {
+    width,
+    height,
+    plot,
+    points,
+    hourTicks,
+    linePath,
+    areaPath,
+    peak: values[peakIndex] ?? null,
+  }
+})
+const selectedAttendancePoint = computed(() => {
+  if (selectedAttendancePointIndex.value === null) return null
+  const point = attendanceChartGeometry.value.points[selectedAttendancePointIndex.value]
+  if (!point || !selectedAttendanceTooltipPosition.value) return null
+  return { ...point, ...selectedAttendanceTooltipPosition.value }
+})
+const attendanceDetailTabs = computed(() => [
+  { id: 'statistics', label: 'Estadística', icon: 'monitoring' },
+  ...attendanceGradeGroups.flatMap(({ sections }) =>
+    sections.map((section) => ({ id: section, label: section, icon: 'groups' })),
+  ),
+])
+function getSectionAttendanceRows(section, record) {
+  if (!record?.total) return []
+  const sectionIndex = attendanceGradeGroups
+    .flatMap(({ sections }) => sections)
+    .indexOf(section)
+  const toAttendanceRow = (id, fullName, statusSeed) => {
+    const nameParts = fullName.trim().split(/\s+/)
+    const statusIndex = statusSeed % 5
+    const estado = statusIndex === 0
+      ? 'Ausente'
+      : statusIndex <= 2
+        ? 'Tardanza'
+        : 'Presente'
+
+    return {
+      id,
+      nombre: nameParts.shift() || '—',
+      apellido: nameParts.join(' ') || '—',
+      estado,
+      horaIngreso: estado === 'Ausente'
+        ? '—'
+        : attendanceArrivalTimes[statusSeed % attendanceArrivalTimes.length],
+    }
+  }
+
+  const enrolledStudents = state.estudiantes
+    .filter((student) => student.salon_seccion === section)
+    .map((student) => toAttendanceRow(
+      `student-${student.codigo_alumno}`,
+      student.nombres,
+      student.codigo_alumno + sectionIndex,
+    ))
+
+  const additionalStudents = Array.from({
+    length: Math.max(0, SIMULATED_SECTION_ROSTER_SIZE - enrolledStudents.length),
+  }, (_, index) => {
+    const nameIndex = sectionIndex * SIMULATED_SECTION_ROSTER_SIZE + index
+    const surnameIndex = Math.floor(nameIndex / simulatedFirstNames.length) % simulatedSurnames.length
+    const fullName = [
+      simulatedFirstNames[nameIndex % simulatedFirstNames.length],
+      simulatedSurnames[surnameIndex],
+      simulatedSurnames[(surnameIndex + 7) % simulatedSurnames.length],
+    ].join(' ')
+
+    return toAttendanceRow(
+      `sample-${section}-${index + 1}`,
+      fullName,
+      nameIndex + sectionIndex,
+    )
+  })
+
+  return [...enrolledStudents, ...additionalStudents]
+}
+function getAttendanceCounts(record) {
+  const counts = { present: 0, late: 0, absent: 0 }
+  if (!record?.total) return counts
+
+  attendanceGradeGroups.forEach(({ sections }) => {
+    sections.forEach((section) => {
+      getSectionAttendanceRows(section, record).forEach(({ estado }) => {
+        if (estado === 'Presente') counts.present += 1
+        else if (estado === 'Tardanza') counts.late += 1
+        else if (estado === 'Ausente') counts.absent += 1
+      })
+    })
+  })
+
+  return counts
+}
+const sectionAttendanceRows = computed(() => (
+  activeDetailSection.value === 'statistics'
+    ? []
+    : getSectionAttendanceRows(activeDetailSection.value, details.payload.value)
+))
+const sectionAttendanceSummary = computed(() => ({
+  present: sectionAttendanceRows.value.filter((student) => student.estado === 'Presente').length,
+  late: sectionAttendanceRows.value.filter((student) => student.estado === 'Tardanza').length,
+  absent: sectionAttendanceRows.value.filter((student) => student.estado === 'Ausente').length,
+}))
+const ATTENDANCE_SECTION_PAGE_SIZE = 10
+const {
+  currentPage: attendanceSectionPage,
+  paginatedItems: paginatedSectionAttendanceRows,
+  setPage: setAttendanceSectionPage,
+} = usePagination(sectionAttendanceRows, ATTENDANCE_SECTION_PAGE_SIZE)
+watch(
+  [activeDetailSection, () => details.payload.value?.date],
+  () => { attendanceSectionPage.value = 1 },
+)
+const activeDetailTabOffset = computed(() => {
+  if (activeDetailSection.value === 'statistics') return 0
+  const grade = Number(activeDetailSection.value[0])
+  const sectionOffset = (activeDetailSection.value.charCodeAt(1) - 'A'.charCodeAt(0)) * 40
+  return 72 + (grade - 1) * 232 + sectionOffset
+})
+
+function syncAttendanceDetailViewport(event) {
+  isMobileDetailNav.value = event.matches
+}
+
+onMounted(() => {
+  attendanceDetailMediaQuery = window.matchMedia('(max-width: 680px)')
+  syncAttendanceDetailViewport(attendanceDetailMediaQuery)
+  attendanceDetailMediaQuery.addEventListener('change', syncAttendanceDetailViewport)
+})
+
+onBeforeUnmount(() => {
+  attendanceDetailMediaQuery?.removeEventListener('change', syncAttendanceDetailViewport)
+})
+
+function toLocalDateKey(date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+const today = new Date()
+const todayDateKey = toLocalDateKey(today)
+attendanceMonth.value = String(today.getMonth() + 1)
+attendanceYear.value = String(today.getFullYear())
+const attendanceDayCount = Math.floor((Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())
+  - Date.UTC(today.getFullYear(), 0, 1)) / 86_400_000) + 1
+const attendanceRecords = ref(Array.from({ length: attendanceDayCount }, (_, dayOffset) => {
+  const date = new Date(today.getFullYear(), 0, dayOffset + 1)
+  const dateKey = toLocalDateKey(date)
+  const isWeekday = date.getDay() !== 0 && date.getDay() !== 6
+  const hourlyAttendance = isWeekday && dateKey === todayDateKey ? simulatedHourlyAttendance : []
+
+  return {
+    id: dateKey,
+    date: dateKey,
+    total: hourlyAttendance.reduce((total, point) => total + point.count, 0),
+    hourlyAttendance,
+  }
+}).filter((record) => {
+  const weekday = new Date(`${record.date}T00:00:00`).getDay()
+  return weekday !== 0 && weekday !== 6
+}).reverse())
+
+function attendanceDateLabel(record) {
+  if (record.date === toLocalDateKey(new Date())) return 'Hoy'
+
+  const date = new Date(`${record.date}T00:00:00`)
+  const parts = new Intl.DateTimeFormat('es-PE', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  }).formatToParts(date)
+  const part = (type) => parts.find((item) => item.type === type)?.value ?? ''
+  const capitalize = (value) => value.charAt(0).toLocaleUpperCase('es-PE') + value.slice(1)
+
+  return `${capitalize(part('weekday'))} ${part('day')} de ${capitalize(part('month'))}`
+}
+
+function attendanceTitle(record) {
+  const dateLabel = attendanceDateLabel(record)
+  return dateLabel === 'Hoy' ? 'Asistencia de Hoy' : `Asistencia del ${dateLabel}`
+}
+
+function downloadAttendanceRecord(record) {
+  const columns = ['Fecha', 'Total de asistencias', 'Salón y sección', 'Nombre', 'Apellido', 'Estado', 'Hora de ingreso']
+  const studentRows = attendanceGradeGroups.flatMap(({ sections }) => sections.flatMap((section) => (
+    getSectionAttendanceRows(section, record).map((student) => [
+      record.date,
+      record.total,
+      section,
+      student.nombre,
+      student.apellido,
+      student.estado,
+      student.horaIngreso,
+    ])
+  )))
+  const rows = [columns, ...(studentRows.length ? studentRows : [[record.date, record.total, '', '', '', '', '']])]
+  const csv = rows
+    .map((row) => row.map((value) => `"${String(value).replace(/"/g, '""')}"`).join(','))
+    .join('\r\n')
+  const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `asistencias-${record.date}.csv`
+  link.click()
+  URL.revokeObjectURL(url)
+  toast.success('Registro descargado', { icon: null })
+}
+
+function openAttendanceDetails(event, record) {
+  activeDetailSection.value = 'statistics'
+  selectedAttendancePointIndex.value = null
+  selectedAttendanceTooltipPosition.value = null
+  details.show(event, record)
+}
+
+function confirmDeleteAttendance(close) {
+  pendingAttendanceDeletion.value = removeAttendance.payload.value
+  close()
+}
+
+function finishDeleteAttendance() {
+  const record = pendingAttendanceDeletion.value
+  if (record) {
+    attendanceRecords.value = attendanceRecords.value.filter(({ id }) => id !== record.id)
+    toast.success('Asistencia eliminada', { icon: null })
+  }
+  pendingAttendanceDeletion.value = null
+  removeAttendance.hide()
+}
+
+function selectAttendanceDetailTab(tabId) {
+  activeDetailSection.value = tabId
+  selectedAttendancePointIndex.value = null
+  selectedAttendanceTooltipPosition.value = null
+}
+
+function selectAttendanceChartPoint(index, event) {
+  selectedAttendancePointIndex.value = index
+  const chart = attendanceHourlyChartElement.value
+  const svg = event.currentTarget?.ownerSVGElement ?? attendanceHourlySvgElement.value
+  const point = attendanceChartGeometry.value.points[index]
+  if (!chart || !svg || !point) return
+
+  const svgPoint = svg.createSVGPoint()
+  svgPoint.x = point.x
+  svgPoint.y = point.y
+  const screenPoint = svgPoint.matrixTransform(svg.getScreenCTM())
+  const chartBounds = chart.getBoundingClientRect()
+  selectedAttendanceTooltipPosition.value = {
+    tooltipX: Math.max(9, Math.min(91, (screenPoint.x - chartBounds.left) / chartBounds.width * 100)),
+    tooltipY: (screenPoint.y - chartBounds.top) / chartBounds.height * 100,
+  }
+}
+
+function selectAttendanceChartAtPointer(event) {
+  const svg = attendanceHourlySvgElement.value
+  const points = attendanceChartGeometry.value.points
+  if (!svg || !points.length) return
+
+  const bounds = svg.getBoundingClientRect()
+  const x = Math.max(0, Math.min(attendanceChartGeometry.value.width,
+    (event.clientX - bounds.left) / bounds.width * attendanceChartGeometry.value.width))
+  let nearestIndex = 0
+  let nearestDistance = Infinity
+
+  points.forEach((point, index) => {
+    const distance = Math.abs(point.x - x)
+    if (distance < nearestDistance) {
+      nearestDistance = distance
+      nearestIndex = index
+    }
+  })
+
+  selectAttendanceChartPoint(nearestIndex, { currentTarget: { ownerSVGElement: svg } })
+}
+
+function moveAttendanceChartPoint(event, direction) {
+  const points = attendanceChartGeometry.value.points
+  if (!points.length) return
+  const currentIndex = selectedAttendancePointIndex.value ?? 0
+  const nextIndex = Math.max(0, Math.min(points.length - 1, currentIndex + direction))
+  selectAttendanceChartPoint(nextIndex, { currentTarget: { ownerSVGElement: attendanceHourlySvgElement.value } })
+}
+
+function focusAttendanceChart() {
+  selectAttendanceChartPoint(0, { currentTarget: { ownerSVGElement: attendanceHourlySvgElement.value } })
+}
+
+function clearAttendanceChartPoint() {
+  selectedAttendancePointIndex.value = null
+  selectedAttendanceTooltipPosition.value = null
+}
+
+function moveAttendanceDetailTab(event, direction) {
+  const currentIndex = attendanceDetailTabs.value.findIndex((tab) => tab.id === activeDetailSection.value)
+  const nextIndex = (currentIndex + direction + attendanceDetailTabs.value.length) % attendanceDetailTabs.value.length
+  const nextTab = attendanceDetailTabs.value[nextIndex]
+  activeDetailSection.value = nextTab.id
+  event.currentTarget.parentElement
+    ?.querySelector(`[data-attendance-tab="${nextTab.id}"]`)
+    ?.focus()
+}
+
+const filteredAttendanceRecords = computed(() => {
+  const query = searchQuery.value.trim().toLocaleLowerCase('es-PE')
+
+  const records = attendanceRecords.value.filter((record) => {
+    const date = new Date(`${record.date}T00:00:00`)
+    const counts = getAttendanceCounts(record)
+    const matchesSearch = attendanceTitle(record).toLocaleLowerCase('es-PE').includes(query)
+    const matchesMonth = attendanceMonth.value === ''
+      || date.getMonth() + 1 === Number(attendanceMonth.value)
+    const matchesYear = attendanceYear.value === ''
+      || date.getFullYear() === Number(attendanceYear.value)
+
+    return matchesSearch && matchesMonth && matchesYear
+  })
+
+  if (attendanceSort.value === 'date-asc') {
+    return records.sort((left, right) => left.date.localeCompare(right.date))
+  }
+
+  if (attendanceSort.value === 'date-desc') {
+    return records.sort((left, right) => right.date.localeCompare(left.date))
+  }
+
+  const countKey = {
+    'absent-desc': 'absent',
+    'late-desc': 'late',
+    'present-desc': 'present',
+    'total-desc': 'total',
+  }[attendanceSort.value]
+
+  return records.sort((left, right) => {
+    const leftCount = countKey === 'total' ? left.total : getAttendanceCounts(left)[countKey]
+    const rightCount = countKey === 'total' ? right.total : getAttendanceCounts(right)[countKey]
+    return rightCount - leftCount || right.date.localeCompare(left.date)
+  })
+})
+
+const ATTENDANCE_PAGE_SIZE = 6
+const {
+  currentPage,
+  paginatedItems: paginatedAttendanceRecords,
+  setPage,
+} = usePagination(filteredAttendanceRecords, ATTENDANCE_PAGE_SIZE)
+watch(
+  [searchQuery, attendanceSort, attendanceMonth, attendanceYear],
+  () => { currentPage.value = 1 },
+)
+
+const mobileActions = [
+  { id: 'search', label: 'Buscar', icon: 'search' },
+  { id: 'filters', label: 'Filtros', icon: 'page_info' },
+]
+
+function handleMobileAction(action, event) {
+  if (action === 'search') search.show(event)
+  if (action === 'filters') filters.show(event)
+}
+</script>
+
+<template>
+  <main class="app-view attendance-view" :class="{ 'align-center': viewMode === 'grid' }">
+    <div
+      class="simple-container direction-column gap-24"
+      :class="viewMode === 'grid' ? 'width-100 max-width-1000' : 'grow-1'"
+    >
+      <header class="app-header">
+        <h1 class="display-medium weight-500 text-gradient">Asistencias</h1>
+        <MobileActionMenu
+          :actions="mobileActions"
+          @select="handleMobileAction"
+        />
+
+        <div class="attendance-toolbar">
+          <div class="simple-container gap-8 hide-on-mobile">
+            <button
+              class="style-7 for-icon bigger hover-border-radius-round background outline-light-1 outline-text attendance-search-btn"
+              @click="search.show"
+            >
+              <md-ripple aria-hidden="true"></md-ripple>
+              <md-icon data-shared-item="icon" aria-hidden="true">search</md-icon>
+            </button>
+            <button
+              class="style-7 for-icon bigger hover-border-radius-round background outline-light-1 outline-text attendance-filters-btn"
+              @click="filters.show"
+            >
+              <md-ripple aria-hidden="true"></md-ripple>
+              <md-icon data-shared-item="icon" aria-hidden="true">filter_list</md-icon>
+            </button>
+          </div>
+
+        </div>
+      </header>
+
+      <section
+        class="attendance-records"
+        :class="viewMode === 'grid' ? 'attendance-grid' : 'attendance-list'"
+        :aria-label="viewMode === 'grid' ? 'Asistencias en cuadrícula' : 'Asistencias en lista'"
+      >
+        <article
+          v-for="record in paginatedAttendanceRecords"
+          :key="record.id"
+          class="attendance-card-section"
+        >
+          <div
+            v-if="viewMode === 'grid'"
+            class="simple-container align-center attendance-date-heading"
+          >
+            <span class="headline-small outline-text">{{ attendanceDateLabel(record) }}</span>
+          </div>
+
+          <div
+            class="content-box"
+            :class="viewMode === 'grid'
+              ? 'light-color aspect-ratio-1-1 justify-between border-radius-40 padding-24 direction-column gap-16 cursor-pointer overflow-hidden item-card attendance-grid-card'
+              : 'background outline-light-1 attendance-record attendance-list-row'"
+          >
+            <template v-if="viewMode === 'grid'">
+              <button
+                type="button"
+                class="attendance-card-open"
+                :aria-label="`Ver ${attendanceTitle(record).toLocaleLowerCase('es-PE')}`"
+                :title="`Ver ${attendanceTitle(record).toLocaleLowerCase('es-PE')}`"
+                @click="openAttendanceDetails($event, record)"
+              ></button>
+              <div class="simple-container justify-between attendance-card-heading">
+                <div class="simple-container direction-column gap-0">
+                  <span class="body-large width-fit-content" data-shared-item="name" data-shared-split="words">
+                    Asistencia
+                  </span>
+                  <span class="body-large width-fit-content weight-500 primary-text" data-shared-item="amount">
+                    {{ record.total }} asistencias
+                  </span>
+                </div>
+                <div class="simple-container align-center gap-4">
+                  <md-icon class="outline-text" aria-hidden="true">arrow_outward</md-icon>
+                </div>
+              </div>
+              <div class="simple-container justify-right gap-8 attendance-grid-actions">
+                <button
+                  type="button"
+                  class="style-7 rounded background on-background-text with-icon-left attendance-grid-view-button"
+                  :aria-label="`Ver ${attendanceTitle(record).toLocaleLowerCase('es-PE')}`"
+                  :title="`Ver ${attendanceTitle(record).toLocaleLowerCase('es-PE')}`"
+                  @click.stop="openAttendanceDetails($event, record)"
+                >
+                  <md-ripple aria-hidden="true"></md-ripple>
+                  <md-icon class="dynamic" aria-hidden="true">visibility</md-icon>
+                  <span>Ver</span>
+                </button>
+                <button
+                  type="button"
+                  class="style-7 for-icon small hover-error-container background outline-text"
+                  :aria-label="`Eliminar ${attendanceTitle(record).toLocaleLowerCase('es-PE')}`"
+                  :title="`Eliminar ${attendanceTitle(record).toLocaleLowerCase('es-PE')}`"
+                  @click.stop="removeAttendance.show($event, record)"
+                >
+                  <md-ripple aria-hidden="true"></md-ripple>
+                  <md-icon aria-hidden="true">delete</md-icon>
+                </button>
+              </div>
+              <md-ripple aria-hidden="true"></md-ripple>
+            </template>
+
+            <template v-else>
+              <h2 class="title-medium weight-500">{{ attendanceTitle(record) }}</h2>
+
+              <div class="attendance-list-actions">
+                <span class="body-large weight-500 attendance-list-total">
+                  {{ record.total }}
+                  <span class="body-medium outline-text">asistencias</span>
+                </span>
+                <button
+                  type="button"
+                  class="style-7 for-icon small hover-primary-container background outline-text"
+                  :aria-label="`Ver ${attendanceTitle(record).toLocaleLowerCase('es-PE')}`"
+                  :title="`Ver ${attendanceTitle(record).toLocaleLowerCase('es-PE')}`"
+                >
+                  <md-ripple aria-hidden="true"></md-ripple>
+                  <md-icon aria-hidden="true">arrow_outward</md-icon>
+                </button>
+
+                <button
+                  type="button"
+                  class="style-7 for-icon small hover-error-container background outline-text"
+                  :aria-label="`Eliminar ${attendanceTitle(record).toLocaleLowerCase('es-PE')}`"
+                  :title="`Eliminar ${attendanceTitle(record).toLocaleLowerCase('es-PE')}`"
+                  @click="removeAttendance.show($event, record)"
+                >
+                  <md-ripple aria-hidden="true"></md-ripple>
+                  <md-icon aria-hidden="true">delete</md-icon>
+                </button>
+              </div>
+            </template>
+          </div>
+        </article>
+
+        <div
+          v-if="filteredAttendanceRecords.length === 0"
+          class="content-box background outline-light-1 attendance-empty-state"
+        >
+          <span class="body-medium outline-text">No se encontraron asistencias</span>
+        </div>
+      </section>
+
+      <PaginationControls
+        v-if="filteredAttendanceRecords.length > 0"
+        :class="{ 'attendance-list-pagination': viewMode === 'list' }"
+        :page="currentPage"
+        :page-size="ATTENDANCE_PAGE_SIZE"
+        :total="filteredAttendanceRecords.length"
+        @update:page="setPage"
+      />
+    </div>
+  </main>
+
+  <FlipModal
+    v-if="details.open.value"
+    :origin="details.origin.value"
+    placement="center"
+    close-strategy="container-only"
+    window-class="increased padding-8 border-radius-40 outline-light-1 attendance-detail-window"
+    content-class="attendance-detail-layout"
+    @close="details.hide"
+  >
+    <template #default="{ close }">
+      <aside class="attendance-detail-sidebar" aria-label="Secciones de asistencia">
+        <div
+          class="pretty-tabs size-md variant-plain orientation-vertical attendance-detail-tabs"
+          role="tablist"
+          aria-label="Estadística y secciones"
+          :aria-orientation="isMobileDetailNav ? 'horizontal' : 'vertical'"
+          data-no-drag
+          :style="{ '--attendance-detail-tab-offset': `${activeDetailTabOffset}px` }"
+        >
+          <span class="attendance-detail-tab-indicator" aria-hidden="true"></span>
+          <button
+            v-for="tab in attendanceDetailTabs.slice(0, 1)"
+            :key="tab.id"
+            :id="`attendance-tab-${tab.id}`"
+            :data-attendance-tab="tab.id"
+            type="button"
+            role="tab"
+            class="attendance-detail-tab"
+            :class="{ active: activeDetailSection === tab.id }"
+            :aria-selected="activeDetailSection === tab.id"
+            :aria-controls="`attendance-detail-panel-${tab.id}`"
+            :tabindex="activeDetailSection === tab.id ? 0 : -1"
+            @click="selectAttendanceDetailTab(tab.id)"
+            @keydown.left.prevent="moveAttendanceDetailTab($event, -1)"
+            @keydown.right.prevent="moveAttendanceDetailTab($event, 1)"
+            @keydown.up.prevent="moveAttendanceDetailTab($event, -1)"
+            @keydown.down.prevent="moveAttendanceDetailTab($event, 1)"
+            @keydown.home.prevent="selectAttendanceDetailTab(attendanceDetailTabs[0].id)"
+            @keydown.end.prevent="selectAttendanceDetailTab(attendanceDetailTabs[attendanceDetailTabs.length - 1].id)"
+          >
+            <md-icon aria-hidden="true">{{ tab.icon }}</md-icon>
+            <span>{{ tab.label }}</span>
+          </button>
+          <template v-for="group in attendanceGradeGroups" :key="group.grade">
+            <span class="attendance-detail-grade-label" aria-hidden="true">{{ group.grade }}</span>
+            <button
+              v-for="section in group.sections"
+              :key="section"
+              :id="`attendance-tab-${section}`"
+              :data-attendance-tab="section"
+              type="button"
+              role="tab"
+              class="attendance-detail-tab attendance-detail-section-tab"
+              :class="{ active: activeDetailSection === section }"
+              :aria-selected="activeDetailSection === section"
+              :aria-controls="`attendance-detail-panel-${section}`"
+              :tabindex="activeDetailSection === section ? 0 : -1"
+              @click="selectAttendanceDetailTab(section)"
+              @keydown.left.prevent="moveAttendanceDetailTab($event, -1)"
+              @keydown.right.prevent="moveAttendanceDetailTab($event, 1)"
+              @keydown.up.prevent="moveAttendanceDetailTab($event, -1)"
+              @keydown.down.prevent="moveAttendanceDetailTab($event, 1)"
+              @keydown.home.prevent="selectAttendanceDetailTab(attendanceDetailTabs[0].id)"
+              @keydown.end.prevent="selectAttendanceDetailTab(attendanceDetailTabs[attendanceDetailTabs.length - 1].id)"
+            >
+              <md-icon aria-hidden="true">groups</md-icon>
+              <span>{{ section }}</span>
+            </button>
+          </template>
+        </div>
+      </aside>
+
+      <section class="attendance-detail-content simple-container direction-column gap-8 grow-1">
+        <header class="attendance-detail-header">
+          <div class="simple-container align-center justify-between width-100">
+            <div class="simple-container direction-column gap-4">
+              <span class="headline-small weight-600">{{ attendanceTitle(details.payload.value) }}</span>
+            </div>
+            <div class="simple-container align-center gap-8">
+              <button
+                type="button"
+                class="style-7 for-icon small rounded surface-container-low outline-text"
+                aria-label="Descargar registro de asistencia"
+                title="Descargar registro del día"
+                @click="downloadAttendanceRecord(details.payload.value)"
+              >
+                <md-ripple aria-hidden="true"></md-ripple>
+                <md-icon aria-hidden="true">download</md-icon>
+              </button>
+              <button
+                type="button"
+                class="style-7 for-icon small rounded surface-container-low outline-text"
+                aria-label="Cerrar detalle de asistencia"
+                @click="close()"
+              >
+                <md-ripple aria-hidden="true"></md-ripple>
+                <md-icon aria-hidden="true">close</md-icon>
+              </button>
+            </div>
+          </div>
+        </header>
+
+        <section
+          v-if="activeDetailSection === 'statistics'"
+          id="attendance-detail-panel-statistics"
+          class="content-box light-color border-radius-32 attendance-detail-body attendance-statistics-body"
+          role="tabpanel"
+          aria-labelledby="attendance-tab-statistics"
+          aria-live="polite"
+        >
+          <template v-if="details.payload.value.total > 0">
+            <header class="attendance-hourly-header">
+              <div class="simple-container direction-column gap-4">
+                <span class="title-medium weight-500">Asistencias del Dia</span>
+                <span class="body-medium outline-text">
+                  {{ attendanceChartGeometry.peak?.count }} asistencias en el intervalo {{ attendanceChartGeometry.peak?.interval }}
+                </span>
+              </div>
+              <span class="body-small outline-text attendance-hourly-total">
+                {{ details.payload.value.total }} en total
+              </span>
+            </header>
+
+            <div ref="attendanceHourlyChartElement" class="attendance-hourly-chart" @pointerleave="clearAttendanceChartPoint">
+              <svg
+                ref="attendanceHourlySvgElement"
+                class="attendance-hourly-svg"
+                :viewBox="`0 0 ${attendanceChartGeometry.width} ${attendanceChartGeometry.height}`"
+                preserveAspectRatio="xMidYMax meet"
+                role="group"
+                aria-label="Gráfico de asistencias por minuto, desde las 7 de la mañana hasta las 4 de la tarde"
+              >
+                <defs>
+                  <linearGradient id="attendance-hourly-fill" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0%" stop-color="var(--md-sys-color-primary-container)" stop-opacity="0.72" />
+                    <stop offset="100%" stop-color="var(--md-sys-color-primary-container)" stop-opacity="0.04" />
+                  </linearGradient>
+                </defs>
+                <path class="attendance-hourly-area" :d="attendanceChartGeometry.areaPath" />
+                <path class="attendance-hourly-line" :d="attendanceChartGeometry.linePath" />
+                <circle
+                  v-if="selectedAttendancePoint"
+                  class="attendance-hourly-point active"
+                  :cx="selectedAttendancePoint.x"
+                  :cy="selectedAttendancePoint.y"
+                  r="5"
+                />
+                <text
+                  v-for="tick in attendanceChartGeometry.hourTicks"
+                  :key="tick.label"
+                  class="attendance-hourly-time"
+                  :x="tick.x"
+                  y="276"
+                  text-anchor="middle"
+                >
+                  {{ tick.label }}
+                </text>
+                <rect
+                  class="attendance-hourly-interaction"
+                  :x="attendanceChartGeometry.plot.left"
+                  :y="attendanceChartGeometry.plot.top"
+                  :width="attendanceChartGeometry.plot.right - attendanceChartGeometry.plot.left"
+                  :height="attendanceChartGeometry.plot.bottom - attendanceChartGeometry.plot.top"
+                  role="slider"
+                  tabindex="0"
+                  aria-label="Explorar las asistencias por minuto, de 7 a. m. a 4 p. m."
+                  aria-valuemin="0"
+                  :aria-valuemax="attendanceChartGeometry.points.length - 1"
+                  :aria-valuenow="selectedAttendancePointIndex ?? 0"
+                  :aria-valuetext="selectedAttendancePoint ? `${selectedAttendancePoint.timeLabel}, ${selectedAttendancePoint.count} asistencias` : 'Explora las asistencias por minuto'"
+                  @pointermove="selectAttendanceChartAtPointer"
+                  @pointerdown="selectAttendanceChartAtPointer"
+                  @focus="focusAttendanceChart"
+                  @keydown.left.prevent="moveAttendanceChartPoint($event, -1)"
+                  @keydown.right.prevent="moveAttendanceChartPoint($event, 1)"
+                />
+              </svg>
+              <div
+                v-if="selectedAttendancePoint"
+                class="attendance-hourly-tooltip"
+                :style="{
+                  left: `${selectedAttendancePoint.tooltipX}%`,
+                  top: `${selectedAttendancePoint.tooltipY}%`,
+                }"
+                aria-hidden="true"
+              >
+                <span class="body-small">{{ selectedAttendancePoint.timeLabel }}</span>
+                <span class="body-medium weight-500">{{ selectedAttendancePoint.count }} asistencias en este minuto</span>
+              </div>
+            </div>
+          </template>
+          <div v-else class="simple-container direction-column align-center gap-8 attendance-detail-message attendance-statistics-empty">
+            <md-icon class="pretty-minimal outline-text" aria-hidden="true">groups</md-icon>
+            <span class="title-medium weight-500">No hay asistencias registradas</span>
+            <span class="body-medium outline-text">
+              Cuando se registren asistencias para esta fecha, aparecerá aquí el resumen por hora.
+            </span>
+          </div>
+        </section>
+        <section
+          v-else
+          :id="`attendance-detail-panel-${activeDetailSection}`"
+          class="content-box border-radius-32 attendance-detail-body attendance-section-body"
+          :class="details.payload.value.total
+            ? 'background outline-light-1'
+            : 'light-color attendance-section-body-empty'"
+          role="tabpanel"
+          :aria-labelledby="`attendance-tab-${activeDetailSection}`"
+          aria-live="polite"
+        >
+          <template v-if="details.payload.value.total">
+            <div class="simple-container gap-8 flex-wrap attendance-section-kpis">
+              <div class="content-box width-auto basis-small grow-1 gap-0 light-color gap-4">
+                <span class="body-large outline-text line-height-1">Presentes</span>
+                <span class="headline-small weight-500">{{ sectionAttendanceSummary.present }}</span>
+              </div>
+              <div class="content-box width-auto basis-small grow-1 gap-0 light-color gap-4">
+                <span class="body-large outline-text line-height-1">Tardanzas</span>
+                <span class="headline-small weight-500">{{ sectionAttendanceSummary.late }}</span>
+              </div>
+              <div class="content-box width-auto basis-small grow-1 gap-0 light-color gap-4">
+                <span class="body-large outline-text line-height-1">Ausentes</span>
+                <span class="headline-small weight-500">{{ sectionAttendanceSummary.absent }}</span>
+              </div>
+            </div>
+
+            <div class="attendance-section-table-wrap">
+              <table class="style-1 attendance-section-table">
+                <thead>
+                  <tr>
+                    <th>Nombre</th>
+                    <th>Apellido</th>
+                    <th>Estado</th>
+                    <th>Hora de ingreso</th>
+                  </tr>
+                </thead>
+                <tbody v-if="sectionAttendanceRows.length">
+                  <tr v-for="student in paginatedSectionAttendanceRows" :key="student.id">
+                    <td>{{ student.nombre }}</td>
+                    <td>{{ student.apellido }}</td>
+                    <td>
+                      <span
+                        class="attendance-status"
+                        :class="{
+                          'is-present': student.estado === 'Presente',
+                          'is-late': student.estado === 'Tardanza',
+                          'is-absent': student.estado === 'Ausente',
+                        }"
+                      >
+                        {{ student.estado }}
+                      </span>
+                    </td>
+                    <td class="attendance-arrival-time">{{ student.horaIngreso }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <PaginationControls
+              :page="attendanceSectionPage"
+              :page-size="ATTENDANCE_SECTION_PAGE_SIZE"
+              :total="sectionAttendanceRows.length"
+              @update:page="setAttendanceSectionPage"
+            />
+          </template>
+          <div v-else class="simple-container direction-column align-center gap-8 attendance-detail-message attendance-statistics-empty">
+            <md-icon class="pretty-minimal outline-text" aria-hidden="true">groups</md-icon>
+            <span class="title-medium weight-500">No hay asistencias registradas</span>
+            <span class="body-medium outline-text">
+              Cuando se registren asistencias para esta fecha, aparecerá aquí el detalle del salón.
+            </span>
+          </div>
+        </section>
+      </section>
+    </template>
+  </FlipModal>
+
+  <FlipModal
+    v-if="removeAttendance.open.value"
+    :origin="removeAttendance.origin.value"
+    window-class="slim"
+    content-class="simple-container direction-column gap-24"
+    content-data-v="28392b8b"
+    @close="finishDeleteAttendance"
+  >
+    <template #default="{ close }">
+      <div data-v-28392b8b class="simple-container direction-column gap-16">
+        <span class="display-small weight-600 title line-height-1 text-gradient">
+          Eliminar asistencia
+        </span>
+        <span class="body-large">
+          ¿Estás seguro de que deseas eliminar {{ attendanceTitle(removeAttendance.payload.value).toLocaleLowerCase('es-PE') }}?
+        </span>
+      </div>
+      <div class="simple-container justify-right gap-8">
+        <button
+          type="button"
+          class="style-7 rounded surface-container-low outline-text flex-0-1 justify-center"
+          @click="close()"
+        >
+          Cancelar
+        </button>
+        <button
+          type="button"
+          class="style-7 rounded flex-0-1 justify-center danger-true error-container error-text with-icon-left"
+          @click="confirmDeleteAttendance(close)"
+        >
+          <md-icon class="filled dynamic" aria-hidden="true">delete</md-icon>
+          Eliminar
+        </button>
+      </div>
+    </template>
+  </FlipModal>
+
+  <ModalSearch
+    v-if="search.open.value"
+    v-model="searchQuery"
+    :origin="search.origin.value"
+    scope="asistencias"
+    @close="search.hide"
+  />
+  <ModalFilters
+    v-if="filters.open.value"
+    :attendance-sort="attendanceSort"
+    :attendance-month="attendanceMonth"
+    :attendance-year="attendanceYear"
+    :origin="filters.origin.value"
+    scope="asistencias"
+    @update:attendance-month="attendanceMonth = $event"
+    @update:attendance-year="attendanceYear = $event"
+    @update:attendance-sort="attendanceSort = $event"
+    @close="filters.hide"
+  />
+</template>
+
+<style scoped>
+.attendance-view {
+  min-width: 0;
+}
+
+.attendance-view .app-header {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.attendance-toolbar {
+  display: flex;
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+  margin-left: auto;
+}
+
+.attendance-empty-state {
+  display: grid;
+  min-height: 112px;
+  place-items: center;
+  padding: 16px;
+  text-align: center;
+}
+
+.attendance-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.attendance-list .attendance-card-section {
+  width: 100%;
+}
+
+.attendance-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  align-content: start;
+  gap: 8px;
+  min-width: 0;
+}
+
+.attendance-grid .attendance-card-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.attendance-date-heading {
+  min-height: 40px;
+  padding: 0 16px;
+  box-sizing: border-box;
+}
+
+.attendance-record {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-width: 0;
+  padding: 12px 16px;
+}
+
+.attendance-record h2 {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attendance-list-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.attendance-list-total {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  min-width: max-content;
+  margin-right: 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.attendance-grid-card {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 0;
+  min-width: 0;
+}
+
+.attendance-grid-card:hover .attendance-grid-view-button {
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+}
+
+.attendance-card-open {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+
+.attendance-card-open:focus-visible {
+  outline: 2px solid var(--md-sys-color-primary);
+  outline-offset: -4px;
+}
+
+.attendance-card-heading {
+  position: relative;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.attendance-grid-actions {
+  position: relative;
+  z-index: 1;
+}
+
+.attendance-detail-header {
+  padding: 16px;
+}
+
+.attendance-detail-body {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+  min-height: 240px;
+  padding: 32px;
+  text-align: center;
+}
+
+.attendance-statistics-body {
+  align-items: stretch;
+  justify-content: flex-start;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 340px;
+  padding: 24px;
+  text-align: left;
+}
+
+.attendance-hourly-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.attendance-hourly-total {
+  flex: 0 0 auto;
+  padding-top: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.attendance-hourly-chart {
+  position: relative;
+  flex: 0 0 320px;
+  width: 100%;
+  height: 320px;
+  min-width: 0;
+  margin-top: auto;
+}
+
+.attendance-hourly-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.attendance-hourly-area {
+  fill: url(#attendance-hourly-fill);
+}
+
+.attendance-hourly-line {
+  fill: none;
+  stroke: var(--md-sys-color-primary);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.attendance-hourly-point {
+  fill: var(--md-sys-color-primary);
+  stroke: var(--md-sys-color-background);
+  stroke-width: 3;
+  opacity: 0;
+  transition: opacity 120ms ease, r 120ms ease;
+}
+
+.attendance-hourly-point.active {
+  opacity: 1;
+}
+
+.attendance-hourly-interaction {
+  fill: transparent;
+  cursor: crosshair;
+  outline: none;
+}
+
+.attendance-hourly-interaction:focus-visible {
+  fill: color-mix(in srgb, var(--md-sys-color-primary) 5%, transparent);
+  stroke: var(--md-sys-color-primary);
+  stroke-width: 2;
+  stroke-dasharray: 3 3;
+}
+
+.attendance-hourly-time {
+  fill: var(--md-sys-color-outline);
+  font-family: var(--app-main-font);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.attendance-hourly-tooltip {
+  position: absolute;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 10px;
+  border-radius: 12px;
+  background: var(--md-sys-color-inverse-surface);
+  color: var(--md-sys-color-inverse-on-surface);
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translate(-50%, calc(-100% - 12px));
+}
+
+.attendance-section-body {
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 16px;
+  min-width: 0;
+  padding: 24px;
+  text-align: left;
+}
+
+.attendance-section-body-empty {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.attendance-section-table-wrap {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--md-sys-color-outline-variant) transparent;
+}
+
+.attendance-section-table {
+  width: 100%;
+  min-width: 520px;
+}
+
+.attendance-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 2px 10px;
+  border-radius: 24px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.attendance-status.is-present {
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+}
+
+.attendance-status.is-late {
+  background: var(--md-sys-color-tertiary-container);
+  color: var(--md-sys-color-on-tertiary-container);
+}
+
+.attendance-status.is-absent {
+  background: var(--md-sys-color-error-container);
+  color: var(--md-sys-color-on-error-container);
+}
+
+.attendance-arrival-time {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.attendance-detail-message {
+  max-width: 400px;
+}
+
+.attendance-statistics-empty {
+  flex: 1 1 auto;
+  align-self: center;
+  justify-content: center;
+  width: min(100%, 400px);
+  min-height: 0;
+  text-align: center;
+}
+
+@media (max-width: 680px) {
+  .attendance-statistics-body {
+    gap: 8px;
+    min-height: 280px;
+    padding: 16px;
+  }
+
+  .attendance-hourly-chart {
+    flex-basis: 230px;
+    height: 230px;
+  }
+
+  .attendance-hourly-svg {
+    min-height: 0;
+  }
+
+  .attendance-hourly-time {
+    font-size: 11px;
+  }
+
+  .attendance-section-body {
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .attendance-section-table {
+    min-width: 0;
+    table-layout: fixed;
+  }
+
+  .attendance-section-table th,
+  .attendance-section-table td {
+    height: auto;
+    padding: 6px 5px;
+    font-size: 11px;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
+
+  .attendance-section-table th:nth-child(1),
+  .attendance-section-table td:nth-child(1) {
+    width: 18%;
+  }
+
+  .attendance-section-table th:nth-child(2),
+  .attendance-section-table td:nth-child(2) {
+    width: 27%;
+  }
+
+  .attendance-section-table th:nth-child(3),
+  .attendance-section-table td:nth-child(3) {
+    width: 25%;
+  }
+
+  .attendance-section-table th:nth-child(4),
+  .attendance-section-table td:nth-child(4) {
+    width: 30%;
+  }
+
+  .attendance-section-table-wrap {
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  .attendance-status {
+    min-height: 22px;
+    padding: 2px 4px;
+    font-size: 10px;
+  }
+
+  .attendance-arrival-time {
+    white-space: normal;
+  }
+}
+
+.attendance-card-heading {
+  width: 100%;
+  min-width: 0;
+}
+
+.attendance-grid-actions {
+  width: 100%;
+}
+
+.attendance-list-pagination {
+  margin-top: auto;
+}
+
+@media (max-width: 480px) {
+  .attendance-record {
+    gap: 8px;
+    padding: 10px 12px;
+  }
+
+  .attendance-record h2 {
+    font-size: 14px;
+  }
+
+  .attendance-list-actions {
+    gap: 4px;
+  }
+
+  .attendance-list-total {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0;
+    margin-right: 4px;
+    font-size: 14px;
+    line-height: 1.1;
+  }
+
+  .attendance-list-total .body-medium {
+    font-size: 11px;
+    white-space: nowrap;
+  }
+}
+</style>

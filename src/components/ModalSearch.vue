@@ -10,28 +10,43 @@ import { useStore } from '../stores/data'
 
 const props = defineProps({
   origin: { type: Object, default: null },
-  // 'movimientos' | 'empleados' | 'estudiantes'
+  // 'movimientos' | 'empleados' | 'estudiantes' | 'asistencias'
   scope: { type: String, default: 'movimientos' },
+  modelValue: { type: String, default: '' },
 })
 
-const emit = defineEmits(['close'])
+const emit = defineEmits(['close', 'update:modelValue'])
 
 const { state, setQuery, setEmpQuery, setStudentQuery } = useStore()
 
 const isEmpleados = computed(() => props.scope === 'empleados')
 const isEstudiantes = computed(() => props.scope === 'estudiantes')
+const isAsistencias = computed(() => props.scope === 'asistencias')
 
 const query = computed({
-  get: () => (isEmpleados.value ? state.empQuery : isEstudiantes.value ? state.studentQuery : state.query),
+  get: () => (isAsistencias.value
+    ? props.modelValue
+    : isEmpleados.value
+      ? state.empQuery
+      : isEstudiantes.value
+        ? state.studentQuery
+        : state.query),
   set: (v) => {
-    if (isEmpleados.value) setEmpQuery(v)
+    if (isAsistencias.value) emit('update:modelValue', v)
+    else if (isEmpleados.value) setEmpQuery(v)
     else if (isEstudiantes.value) setStudentQuery(v)
     else setQuery(v)
   },
 })
 
 const placeholder = computed(() =>
-  isEmpleados.value ? 'Busca un empleado' : isEstudiantes.value ? 'Busca un estudiante' : 'Busca un trámite',
+  isAsistencias.value
+    ? 'Busca una asistencia'
+    : isEmpleados.value
+      ? 'Busca un docente'
+      : isEstudiantes.value
+        ? 'Busca un estudiante'
+        : 'Busca un trámite',
 )
 
 const inputEl = ref(null)

@@ -23,21 +23,77 @@
     z-index: 1 !important;
 }
 
+.app-nav .nav-option-buttons {
+    display: none;
+}
+
+@media only screen and (min-width: 681px) {
+    .app-nav.style-1 .nav-option-buttons,
+    .app-nav.style-4 .nav-option-buttons,
+    .app-nav.style-6 .nav-option-buttons,
+    .app-nav.style-7 .nav-option-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        margin-top: 24px;
+    }
+
+    .app-nav.style-1 .nav-option-label,
+    .app-nav.style-4 .nav-option-label,
+    .app-nav.style-6 .nav-option-label,
+    .app-nav.style-7 .nav-option-label {
+        display: flex;
+        min-height: 40px;
+        align-items: center;
+        padding: 0 16px;
+        opacity: 0.6;
+        user-select: none;
+        font-family: var(--app-main-font);
+        font-size: 16px;
+        font-weight: 500;
+    }
+
+    .app-nav.style-4 .nav-option-label {
+        padding-right: 12px;
+        padding-left: 12px;
+    }
+}
+
+/* La navegación móvil debe seguir anclada al viewport, no al scroll del contenido. */
+@media only screen and (max-width: 680px) {
+    .app-nav.mobile-style-1 {
+        position: fixed;
+        left: 16px;
+        right: 16px;
+        bottom: calc(16px + env(safe-area-inset-bottom));
+        margin: 0;
+    }
+
+    .app-container:has(> .app-nav.mobile-style-1) > .app-view {
+        padding-bottom: calc(112px + env(safe-area-inset-bottom));
+    }
+}
+
 /* Botón del asistente; la ventana conserva el FLIP y el tema de FlipModal. */
 .agent-chatbot-trigger {
     position: fixed;
-    right: 16px;
-    bottom: 16px;
+    right: var(--agent-chatbot-right, 16px);
+    bottom: var(--agent-chatbot-bottom, 16px);
     z-index: 10;
-    display: grid;
-    place-items: center;
-    width: 56px;
-    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--agent-chatbot-size, 56px);
+    min-width: var(--agent-chatbot-size, 56px);
+    height: var(--agent-chatbot-size, 56px);
+    min-height: var(--agent-chatbot-size, 56px);
+    box-sizing: border-box;
     padding: 0;
     border: 0;
     border-radius: 28px;
     background: var(--md-sys-color-surface-container-low);
     color: var(--md-sys-color-primary);
+    box-shadow: none;
     cursor: pointer;
     --md-ripple-hover-color: var(--md-sys-color-on-primary-container);
     --md-ripple-pressed-color: var(--md-sys-color-on-primary-container);
@@ -55,6 +111,7 @@
 
 .agent-chatbot-trigger.variant-bright {
     position: fixed;
+    box-shadow: none;
 }
 
 .agent-chatbot-trigger > svg {
@@ -76,8 +133,23 @@
 
 @media only screen and (min-width: 681px) and (max-width: 1024px) {
     .agent-chatbot-trigger {
-        right: 16px;
-        bottom: 16px;
+        --agent-chatbot-size: 56px;
+    }
+}
+
+@media only screen and (max-width: 680px) {
+    .agent-chatbot-trigger {
+        --agent-chatbot-size: 64px;
+        --agent-chatbot-right: 16px;
+        --agent-chatbot-bottom: calc(40px + var(--agent-chatbot-size));
+        --md-ripple-hover-color: var(--md-sys-color-primary);
+        --md-ripple-pressed-color: var(--md-sys-color-primary);
+    }
+}
+
+@media only screen and (max-width: 380px) {
+    .agent-chatbot-trigger {
+        --agent-chatbot-size: 56px;
     }
 }
 
@@ -586,19 +658,7 @@
 }
 
 #studentsMobile .student-avatar {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex: 0 0 48px;
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    background: var(--md-sys-color-surface-container);
-    color: var(--md-sys-color-on-surface);
-}
-
-#studentsMobile .student-avatar md-icon {
-    --md-icon-size: 24px;
+    --avatar-size: 48px;
 }
 
 #studentsMobile .student-details {
@@ -732,6 +792,84 @@
     color: var(--md-sys-color-outline);
 }
 
+.student-qr-image {
+    display: block;
+    width: min(220px, 100%);
+    height: auto;
+    aspect-ratio: 1;
+    object-fit: contain;
+}
+
+.select-popup-searchable .select-options-root {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    gap: 8px;
+}
+
+.select-popup-searchable .select-search {
+    display: block;
+    flex: 0 0 auto;
+    min-width: 0;
+}
+
+.select-popup-searchable .select-search-input {
+    position: relative;
+}
+
+.select-popup-searchable .select-search input.style-2 {
+    width: 100%;
+    height: 48px;
+    box-sizing: border-box;
+    padding-right: 48px;
+    border-radius: 24px;
+    background-color: var(--md-sys-color-background);
+    color: var(--md-sys-color-on-background);
+}
+
+.select-popup-searchable .select-search-input md-icon {
+    --md-icon-size: 20px;
+    position: absolute;
+    top: 50%;
+    right: 16px;
+    color: var(--md-sys-color-outline);
+    transform: translateY(-50%);
+    pointer-events: none;
+}
+
+.select-popup-searchable .options-container {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.select-popup-searchable .options-container::-webkit-scrollbar {
+    display: none;
+}
+
+.select-popup-searchable .select-option-group + .select-option-group {
+    margin-top: 8px;
+}
+
+.select-popup-searchable .select-option-group-label {
+    display: block;
+    padding: 8px 16px 4px;
+    color: var(--md-sys-color-outline);
+    font-size: 12px;
+    line-height: 16px;
+}
+
+.select-popup-searchable .select-empty-result {
+    padding: 16px;
+    color: var(--md-sys-color-outline);
+    font-size: 14px;
+    text-align: center;
+}
+
 .student-dni-card {
     display: flex;
     flex-direction: column;
@@ -786,6 +924,186 @@
     padding: 0;
     overflow: hidden;
     background: var(--md-sys-color-background);
+}
+
+@media only screen and (min-width: 681px) {
+    .modal-window.attendance-detail-window[data-v-c84aa51e] {
+        width: min(1040px, calc(100vw - 48px)) !important;
+        max-width: 1040px !important;
+        max-height: 800px !important;
+    }
+}
+
+.attendance-detail-layout {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: row;
+    gap: 16px;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.attendance-detail-sidebar {
+    display: flex;
+    flex: 0 0 208px;
+    min-height: 0;
+    box-sizing: border-box;
+    padding: 16px 0 16px 16px;
+    overflow: hidden;
+}
+
+.attendance-detail-tabs {
+    position: relative;
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 0;
+    width: 100%;
+    min-height: 0;
+    padding: 0;
+    overflow-y: auto;
+    scrollbar-width: none;
+}
+
+.attendance-detail-tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.attendance-detail-tab-indicator {
+    position: absolute;
+    z-index: 0;
+    top: 0;
+    left: 0;
+    display: block;
+    width: 100%;
+    height: 40px;
+    border-radius: var(--pretty-tabs-pill-radius, 16px);
+    background: var(--pretty-tabs-pill, var(--md-sys-color-surface));
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.03), 0 0.5px 2.5px rgba(0, 0, 0, 0.08);
+    pointer-events: none;
+    transform: translateY(var(--attendance-detail-tab-offset, 0px));
+    transition: transform 220ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.attendance-detail-grade-label {
+    display: flex;
+    flex: 0 0 32px;
+    align-items: center;
+    box-sizing: border-box;
+    padding: 0 12px;
+    color: var(--md-sys-color-outline);
+    opacity: 0.6;
+    font-family: var(--app-main-font);
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.attendance-detail-tab {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex: 0 0 40px;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+    width: 100%;
+    min-height: 40px;
+    box-sizing: border-box;
+    padding: 0 12px;
+    border: 0;
+    border-radius: var(--pretty-tabs-pill-radius, 16px);
+    background: transparent;
+    color: var(--md-sys-color-outline);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+    transition: color 200ms ease, background-color 200ms ease;
+}
+
+.attendance-detail-tab md-icon {
+    flex: 0 0 auto;
+    --md-icon-size: 24px;
+    font-variation-settings: "FILL" 0;
+}
+
+.attendance-detail-tab.active {
+    color: var(--md-sys-color-on-surface-variant);
+}
+
+.attendance-detail-tab.active md-icon {
+    font-variation-settings: "FILL" 1;
+}
+
+.attendance-detail-tab:not(.active):hover {
+    background: color-mix(in srgb, var(--md-sys-color-on-surface) 5%, transparent);
+}
+
+.attendance-detail-content {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    padding: 8px;
+    overflow: hidden;
+}
+
+@media only screen and (max-width: 680px) {
+    .attendance-detail-layout {
+        flex-direction: column;
+        gap: 0;
+    }
+
+    .attendance-detail-sidebar {
+        flex: 0 0 auto;
+        width: 100%;
+        padding: 8px 12px;
+    }
+
+    .attendance-detail-tabs {
+        flex-direction: row;
+        align-items: center;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scrollbar-width: none;
+    }
+
+    .attendance-detail-tabs::-webkit-scrollbar {
+        display: none;
+    }
+
+    .attendance-detail-tab-indicator,
+    .attendance-detail-grade-label,
+    .attendance-detail-tab md-icon {
+        display: none;
+    }
+
+    .attendance-detail-tab {
+        flex: 0 0 auto;
+        justify-content: center;
+        width: auto;
+        min-width: 56px;
+        min-height: 40px;
+        padding: 0 10px;
+        font-size: 12px;
+        white-space: nowrap;
+    }
+
+    .attendance-detail-tab.active {
+        background: var(--md-sys-color-surface-container);
+    }
+
+    .attendance-detail-tab:not(.active):hover {
+        background: transparent;
+    }
+
+    .attendance-detail-content {
+        flex: 1 1 0;
+        padding: 8px 12px max(16px, env(safe-area-inset-bottom));
+    }
 }
 
 .settings-layout {
@@ -847,8 +1165,21 @@
     box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.03), 0 0.5px 2.5px rgba(0, 0, 0, 0.08);
     pointer-events: none;
     will-change: transform;
-    transform: translateY(calc(var(--settings-tab-index, 0) * 40px));
+    transform: translateY(var(--settings-tab-offset, 0px));
     transition: transform 220ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.settings-tabs .settings-tab-section-label {
+    display: flex;
+    flex: 0 0 32px;
+    align-items: center;
+    box-sizing: border-box;
+    padding: 0 12px;
+    color: var(--md-sys-color-outline);
+    opacity: 0.6;
+    font-family: var(--app-main-font);
+    font-size: 12px;
+    font-weight: 500;
 }
 
 .settings-tabs .pretty-tabs__tab {
@@ -1013,7 +1344,8 @@
         flex-direction: row;
         width: 100%;
         gap: 0;
-        overflow: visible;
+        overflow-x: auto;
+        overflow-y: hidden;
         scrollbar-width: none;
     }
 
@@ -1021,22 +1353,27 @@
         display: none;
     }
 
+    .settings-tabs .settings-tab-section-label {
+        display: none;
+    }
+
     .settings-tabs .pretty-tabs__indicator {
         top: 0;
         left: 0;
-        width: 25%;
+        width: 136px;
         height: 40px;
-        transform: translateX(calc(var(--settings-tab-index, 0) * 100%));
+        transform: translateX(calc(var(--settings-tab-index, 0) * 136px));
     }
 
     .settings-tabs .pretty-tabs__tab {
-        flex: 1 1 25%;
+        flex: 0 0 136px;
         justify-content: center;
         gap: 4px;
-        width: 25%;
+        width: 136px;
+        box-sizing: border-box;
         min-width: 0;
         min-height: 40px;
-        padding: 0 4px;
+        padding: 0 8px;
         font-size: 12px;
         white-space: nowrap;
     }
@@ -1330,19 +1667,7 @@
     }
 
     #empleadosMobile .employee-avatar {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex: 0 0 48px;
-        width: 48px;
-        height: 48px;
-        border-radius: 50%;
-        background: var(--md-sys-color-surface-container);
-        color: var(--md-sys-color-on-surface);
-    }
-
-    #empleadosMobile .employee-avatar md-icon {
-        --md-icon-size: 24px;
+        --avatar-size: 48px;
     }
 
     #empleadosMobile .employee-details {
@@ -1675,29 +2000,118 @@
 
 /* ── Login ── */
 .app-view.page-login {
-    min-height: 100vh;
-    justify-content: center;
-}
-
-.page-login input.style-1,
-#loginForm input.style-1 {
     width: 100%;
-    padding: 12px 16px;
-    border-radius: 12px;
-    border: 1px solid var(--md-sys-color-outline, #ccc);
-    background: var(--md-sys-color-surface, #fff);
-    color: var(--md-sys-color-on-surface, #000);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 16px;
-    transition: all 0.2s ease;
+    height: 100dvh;
+    min-height: 100dvh;
+    min-width: 0;
+    justify-content: center;
+    align-items: center;
+    padding: 0;
+    overflow: hidden;
     box-sizing: border-box;
 }
 
-.page-login input.style-1:focus,
-#loginForm input.style-1:focus {
-    outline: none;
-    border-color: var(--md-sys-color-primary, #6750a4);
-    box-shadow: 0 0 0 3px var(--md-sys-color-primary-container, #eaddff);
+.page-login-frame {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    width: 100%;
+    height: 100%;
+    min-height: 100dvh;
+    padding: 0;
+    box-sizing: border-box;
+    background: var(--md-sys-color-surface-container-lowest);
+}
+
+.page-login-form-panel {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    padding: clamp(24px, 5vw, 72px);
+}
+
+.page-login-brand {
+    color: var(--md-sys-color-on-background);
+}
+
+.page-login-brand img {
+    display: block;
+    object-fit: contain;
+}
+
+.page-login-form-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 32px;
+    width: min(100%, 480px);
+    margin: auto;
+    padding: 48px 0;
+}
+
+.page-login-heading h1,
+.page-login-heading p {
+    margin: 0;
+}
+
+.page-login-heading h1 {
+    color: var(--md-sys-color-on-background);
+}
+
+.page-login-heading p {
+    max-width: 34ch;
+}
+
+#loginForm input.style-2 {
+    background: var(--md-sys-color-surface-container-lowest);
+}
+
+.page-login-visual {
+    position: relative;
+    display: grid;
+    min-width: 0;
+    min-height: 100%;
+    place-items: center;
+    overflow: hidden;
+    color: var(--md-sys-color-on-primary-container);
+    background: linear-gradient(
+        145deg,
+        var(--md-sys-color-primary-container),
+        color-mix(in srgb, var(--md-sys-color-primary-container) 76%, var(--md-sys-color-primary))
+    );
+}
+
+.page-login-visual-orbit {
+    position: absolute;
+    width: min(72%, 520px);
+    aspect-ratio: 1;
+    border: 1px solid color-mix(in srgb, var(--md-sys-color-on-primary-container) 14%, transparent);
+    border-radius: 50%;
+}
+
+.page-login-visual-orbit-one {
+    transform: translate(-16%, -18%);
+}
+
+.page-login-visual-orbit-two {
+    width: min(48%, 340px);
+    transform: translate(38%, 34%);
+}
+
+.page-login-visual-mark {
+    z-index: 1;
+    display: grid;
+    width: clamp(160px, 22vw, 280px);
+    aspect-ratio: 1;
+    place-items: center;
+    border-radius: 40%;
+    background: color-mix(in srgb, var(--md-sys-color-on-primary-container) 8%, transparent);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--md-sys-color-on-primary-container) 12%, transparent) inset;
+}
+
+.page-login-visual-mark md-icon {
+    --md-icon-size: clamp(72px, 11vw, 144px);
+    font-size: clamp(72px, 11vw, 144px);
+    color: var(--md-sys-color-on-primary-container);
 }
 
 .error-container {
@@ -1710,21 +2124,42 @@
     color: var(--md-sys-color-error, #ba1a1a) !important;
 }
 
-#loginBtn {
-    width: 100%;
-    padding: 16px;
-    border-radius: 24px;
-    font-size: 16px;
-    font-weight: 500;
-    border: none;
-    cursor: pointer;
-    position: relative;
-    overflow: hidden;
+@media only screen and (max-width: 760px) {
+    .app-view.page-login {
+        height: auto;
+        min-height: 100dvh;
+        padding: 0;
+    }
+
+    .page-login-frame {
+        display: block;
+        min-height: 100dvh;
+        padding: 0;
+    }
+
+    .page-login-form-panel {
+        min-height: 100dvh;
+        padding: clamp(24px, 7vw, 40px);
+    }
+
+    .page-login-form-content {
+        gap: 28px;
+        padding: 48px 0;
+    }
+
+    .page-login-visual {
+        display: none;
+    }
 }
 
-#loginBtn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+@media only screen and (max-width: 400px) {
+    .page-login-form-panel {
+        padding: 24px 20px;
+    }
+
+    .page-login-heading h1 {
+        font-size: 30px;
+    }
 }
 
 /* ── Badges de estado ── */
@@ -1809,6 +2244,26 @@
     height: 64px;
     padding: 0 !important;
     box-sizing: border-box;
+}
+
+.calendar-month-controls .calendar-month-arrow {
+    border: 0;
+    border-radius: 24px;
+    background: transparent;
+    color: var(--md-sys-color-on-surface-variant);
+    box-shadow: none;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.calendar-month-controls .calendar-month-arrow:hover:not(:disabled) {
+    border-radius: 24px;
+    background: var(--md-sys-color-surface-container-high);
+    color: var(--md-sys-color-on-background);
+}
+
+.calendar-month-controls .calendar-month-arrow:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 2px;
 }
 
 .calendar-page-surface {
@@ -2277,8 +2732,18 @@
 }
 
 .calendar-day-agenda-time {
-    padding-top: 14px;
+    display: inline-flex;
+    min-width: 56px;
+    min-height: 32px;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    padding: 6px 8px;
+    border-radius: 18px;
+    background: var(--md-sys-color-surface-container-low);
+    color: var(--md-sys-color-on-surface-variant);
     text-align: right;
+    font-variant-numeric: tabular-nums;
 }
 
 .calendar-day-agenda-card {
@@ -2471,6 +2936,11 @@
     }
 
     .calendar-month-controls button {
+        width: 40px;
+        height: 40px;
+    }
+
+    .calendar-month-controls .calendar-month-arrow {
         width: 40px;
         height: 40px;
     }

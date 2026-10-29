@@ -1,56 +1,64 @@
 <script setup>
-import { computed, nextTick, ref } from 'vue'
+import { nextTick, ref } from 'vue'
 import FlipModal from './FlipModal.vue'
-import SelectFlip from './SelectFlip.vue'
 import ModalDeleteEmployee from './ModalDeleteEmployee.vue'
 import { useModal } from '../composables/useModal'
-import { useStore } from '../stores/data'
 import { toast } from 'super-beautiful-toast'
+import { apiPatch } from '../services/api'
 
 const props = defineProps({
   origin: { type: Object, default: null },
   empleado: { type: Object, default: null },
 })
 
-const emit = defineEmits(['close'])
+const emit = defineEmits(['close', 'save', 'delete'])
 
-const { state, updateEmpleado, deleteEmpleado } = useStore()
 const confirmDelete = useModal()
+const saving = ref(false)
+const saveError = ref('')
 
 const partes = (props.empleado?.nombres || '').split(' ')
 
 const form = ref({
   dni: props.empleado?.dni || '',
-  first: partes[0] || '',
-  last: partes.slice(1).join(' ') || '',
+  first: props.empleado?.first_name || partes[0] || '',
+  last: props.empleado?.last_name || partes.slice(1).join(' ') || '',
   email: props.empleado?.email || '',
   password: '',
-  cargo: props.empleado?.cargo || '',
   superuser: !!props.empleado?.is_superuser,
 })
 
-const cargoOptions = computed(() =>
-  state.cargos.map((cargo) => ({ value: cargo, label: cargo })),
-)
-
 async function submit(close, event) {
-  if (props.empleado) {
-    updateEmpleado(props.empleado.id, {
-      dni: form.value.dni.trim(),
-      first_name: form.value.first.trim(),
-      last_name: form.value.last.trim(),
-      email: form.value.email.trim(),
-      cargo: form.value.cargo,
-      is_superuser: form.value.superuser,
-    })
-    toast.success('Empleado actualizado', { icon: null, origin: event?.submitter ?? null })
+  if (saving.value || !props.empleado) return
+  saveError.value = ''
+  if (form.value.password && form.value.password.length < 12) {
+    saveError.value = 'La nueva contraseña debe tener al menos 12 caracteres.'
+    return
   }
-  await nextTick()
-  close()
+  saving.value = true
+  const changes = {
+    dni: form.value.dni.trim(),
+    nombres: form.value.first.trim(),
+    apellidos: form.value.last.trim(),
+    correo: form.value.email.trim(),
+    ...(form.value.password ? { password: form.value.password } : {}),
+  }
+  try {
+    await apiPatch(`/api/admin/docentes/${encodeURIComponent(props.empleado.id)}`, changes)
+    emit('save', { ...props.empleado, ...changes })
+    toast.success('Docente actualizado', { icon: null, origin: event?.submitter ?? null })
+    await nextTick()
+    close()
+  } catch (error) {
+    saveError.value = error.message || 'No se pudo actualizar al docente.'
+    toast.error(saveError.value, { icon: null, origin: event?.submitter ?? null })
+  } finally {
+    saving.value = false
+  }
 }
 
-function onDeleted(close) {
-  if (props.empleado) deleteEmpleado(props.empleado.id)
+function onDeleted(close, id) {
+  emit('delete', id || props.empleado?.id)
   close()
 }
 </script>
@@ -76,7 +84,7 @@ function onDeleted(close) {
           </button>
         </div>
         <div class="simple-container direction-column grow-1 padding-16 text-center">
-          <span class="display-medium weight-600 line-height-1 text-gradient">Editar empleado</span>
+          <span class="display-medium weight-600 line-height-1 text-gradient">Editar docente</span>
         </div>
       </div>
 
@@ -106,19 +114,12 @@ function onDeleted(close) {
             type="password"
             class="style-2"
             name="emp-password"
+            minlength="12"
+            maxlength="256"
           />
         </div>
-        <div data-flow-item data-input-label="Cargo">
-          <div class="asyncstate-data">
-            <SelectFlip
-              v-model="form.cargo"
-              name="emp-cargo"
-              scope="3020d431"
-              placeholder="Selecciona un cargo"
-              :options="cargoOptions"
-              :option-height="52"
-            />
-          </div>
+        <div v-if="saveError" class="body-medium error-text" role="alert">
+          {{ saveError }}
         </div>
         <!-- <div data-flow-item class="simple-container align-center gap-8" style="padding: 4px 0">
           <label class="switch-label">
@@ -149,9 +150,10 @@ function onDeleted(close) {
             <button
               type="submit"
               class="style-7 primary-container on-primary-container-text flex-1 rounded big"
+              :disabled="saving"
             >
               <md-ripple aria-hidden="true"></md-ripple>
-              <span>Guardar</span>
+              <span>{{ saving ? 'Guardando…' : 'Guardar' }}</span>
             </button>
           </div>
         </div>
@@ -161,7 +163,7 @@ function onDeleted(close) {
         v-if="confirmDelete.open.value"
         :origin="confirmDelete.origin.value"
         :empleado="empleado"
-        @confirm="onDeleted(close)"
+        @confirm="onDeleted(close, $event)"
         @close="confirmDelete.hide"
       />
     </template>

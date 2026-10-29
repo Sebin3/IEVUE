@@ -1,16 +1,23 @@
 <script setup>
-import { nextTick, ref } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import FlipModal from './FlipModal.vue'
 import SelectFlip from './SelectFlip.vue'
 import { useStore } from '../stores/data'
 import { toast } from 'super-beautiful-toast'
+import { apiGet, apiPost } from '../services/api'
 
 defineProps({
   origin: { type: Object, default: null },
 })
 
 const emit = defineEmits(['close'])
-const { addEstudiante } = useStore()
+const { state, addEstudiante } = useStore()
+const route = useRoute()
+const saving = ref(false)
+const loadingSections = ref(true)
+const saveError = ref('')
+const availableSections = ref([])
 
 const form = ref({
   dni: '',
@@ -22,13 +29,31 @@ const form = ref({
   estado: 'Activo',
 })
 
-const salonOptions = [
-  { value: '1A', label: '1A' },
-  { value: '1B', label: '1B' },
-  { value: '2A', label: '2A' },
-  { value: '2B', label: '2B' },
-  { value: '3A', label: '3A' },
-]
+const salonOptions = computed(() => availableSections.value.map((section) => {
+  const gradeNumber = String(section.grado || section.nombre).match(/\d+/)?.[0]
+  const letter = section.seccion || section.nombre.match(/\b([A-E])$/i)?.[1]
+  const groups = ['Primero', 'Segundo', 'Tercero', 'Cuarto', 'Quinto']
+  return {
+    value: section.id,
+    label: gradeNumber && letter ? `${gradeNumber}${letter.toUpperCase()}` : section.nombre,
+    group: gradeNumber ? groups[Number(gradeNumber) - 1] || `Grado ${gradeNumber}` : 'Otros salones',
+  }
+}))
+
+async function loadSections() {
+  try {
+    const sections = await apiGet('/api/secciones')
+    availableSections.value = (Array.isArray(sections) ? sections : [])
+      .filter((section) => section.id && section.nombre)
+      .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { numeric: true }))
+  } catch (error) {
+    saveError.value = error.message || 'No se pudieron cargar los salones.'
+  } finally {
+    loadingSections.value = false
+  }
+}
+
+onMounted(loadSections)
 
 const statusOptions = [
   { value: 'Activo', label: 'Activo' },
@@ -36,19 +61,44 @@ const statusOptions = [
 ]
 
 async function submit(close, event) {
-  if (!form.value.dni.trim() || !form.value.first.trim() || !form.value.last.trim()) return
-  addEstudiante({
-    dni: form.value.dni.trim(),
-    telefono: form.value.telefono.trim(),
-    first_name: form.value.first.trim(),
-    last_name: form.value.last.trim(),
-    correo_institucional: form.value.email.trim(),
-    salon_seccion: form.value.salon,
-    estado: form.value.estado,
-  })
-  toast.success('Estudiante creado', { icon: null, origin: event?.submitter ?? null })
-  await nextTick()
-  close()
+  if (saving.value) return
+  saveError.value = ''
+  if (!form.value.dni.trim() || !form.value.first.trim() || !form.value.last.trim() || !form.value.salon) {
+    saveError.value = 'Completa DNI, nombres, apellidos y salón.'
+    return
+  }
+
+  saving.value = true
+  try {
+    const created = await apiPost('/api/admin/alumnos', {
+      dni: form.value.dni.trim(),
+      telefono: form.value.telefono.trim(),
+      nombres: form.value.first.trim(),
+      apellidos: form.value.last.trim(),
+      correo: form.value.email.trim(),
+      seccion_id: form.value.salon,
+      estado: form.value.estado === 'Inactivo' ? 'inactivo' : 'activo',
+    })
+    if (String(created.estado || '').toLowerCase() === 'activo') {
+      if (route.name === 'estudiantes' && created.seccion) {
+        state.studentFilters.salon = created.seccion
+      }
+      addEstudiante({
+        ...created,
+        correo_institucional: created.email || '',
+        salon_seccion: created.seccion || '',
+        estado: 'Activo',
+      })
+    }
+    toast.success('Estudiante creado', { icon: null, origin: event?.submitter ?? null })
+    await nextTick()
+    close()
+  } catch (error) {
+    saveError.value = error.message || 'No se pudo crear al estudiante.'
+    toast.error(saveError.value, { icon: null, origin: event?.submitter ?? null })
+  } finally {
+    saving.value = false
+  }
 }
 </script>
 
@@ -111,6 +161,10 @@ async function submit(close, event) {
               name="student-section"
               placeholder="Selecciona un salón"
               :options="salonOptions"
+              :disabled="loadingSections || !salonOptions.length"
+              :searchable="true"
+              :grouped="true"
+              :max-popup-height="480"
             />
           </div>
         </div>
@@ -123,6 +177,10 @@ async function submit(close, event) {
               :options="statusOptions"
             />
           </div>
+        </div>
+
+        <div v-if="saveError" class="body-medium error-text" role="alert">
+          {{ saveError }}
         </div>
 
         <div
@@ -144,9 +202,10 @@ async function submit(close, event) {
               data-v-6c7476fc
               type="submit"
               class="style-7 primary-container on-primary-container-text flex-1 rounded big"
+              :disabled="saving || loadingSections || !salonOptions.length"
             >
               <md-ripple data-v-6c7476fc aria-hidden="true"></md-ripple>
-              <span data-v-6c7476fc>Crear</span>
+              <span data-v-6c7476fc>{{ saving ? 'Creando…' : 'Crear' }}</span>
             </button>
           </div>
         </div>

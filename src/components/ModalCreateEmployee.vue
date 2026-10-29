@@ -1,9 +1,9 @@
 <script setup>
-import { computed, nextTick, ref } from 'vue'
+import { nextTick, ref } from 'vue'
 import FlipModal from './FlipModal.vue'
-import SelectFlip from './SelectFlip.vue'
 import { useStore } from '../stores/data'
 import { toast } from 'super-beautiful-toast'
+import { apiPost } from '../services/api'
 
 defineProps({
   origin: { type: Object, default: null },
@@ -11,7 +11,9 @@ defineProps({
 
 const emit = defineEmits(['close'])
 
-const { state, addEmpleado } = useStore()
+const { addEmpleado } = useStore()
+const saving = ref(false)
+const saveError = ref('')
 
 const form = ref({
   dni: '',
@@ -19,28 +21,43 @@ const form = ref({
   last: '',
   email: '',
   password: '',
-  cargo: '',
   superuser: false,
 })
 
-const cargoOptions = computed(() =>
-  state.cargos.map((cargo) => ({ value: cargo, label: cargo })),
-)
-
 async function submit(close, event) {
-  const dni = form.value.dni.trim()
-  if (!dni || !form.value.password) return
-  addEmpleado({
-    dni,
-    first_name: form.value.first.trim(),
-    last_name: form.value.last.trim(),
-    email: form.value.email.trim(),
-    cargo: form.value.cargo,
-    is_superuser: form.value.superuser,
-  })
-  toast.success('Empleado creado', { icon: null, origin: event?.submitter ?? null })
-  await nextTick()
-  close()
+  if (saving.value) return
+  saveError.value = ''
+  const body = {
+    dni: form.value.dni.trim(),
+    nombres: form.value.first.trim(),
+    apellidos: form.value.last.trim(),
+    correo: form.value.email.trim(),
+    password: form.value.password,
+  }
+  if (!body.dni || !body.nombres || !body.apellidos || !body.correo || body.password.length < 12) {
+    saveError.value = 'Completa los datos y usa una contraseña de al menos 12 caracteres.'
+    return
+  }
+
+  saving.value = true
+  try {
+    const created = await apiPost('/api/admin/docentes', body)
+    addEmpleado({
+      ...created,
+      nombres: created.nombre_completo || `${created.nombres || ''} ${created.apellidos || ''}`.trim(),
+      first_name: created.nombres || body.nombres,
+      last_name: created.apellidos || body.apellidos,
+      is_active: created.activo !== false,
+    })
+    toast.success('Docente creado', { icon: null, origin: event?.submitter ?? null })
+    await nextTick()
+    close()
+  } catch (error) {
+    saveError.value = error.message || 'No se pudo crear al docente.'
+    toast.error(saveError.value, { icon: null, origin: event?.submitter ?? null })
+  } finally {
+    saving.value = false
+  }
 }
 </script>
 
@@ -63,7 +80,7 @@ async function submit(close, event) {
           </button>
         </div>
         <div class="simple-container direction-column grow-1 padding-16">
-          <span class="display-medium weight-600 line-height-1 text-gradient">Nuevo empleado</span>
+          <span class="display-medium weight-600 line-height-1 text-gradient">Nuevo docente</span>
         </div>
       </div>
 
@@ -115,19 +132,12 @@ async function submit(close, event) {
             class="style-2"
             name="emp-password"
             required
+            minlength="12"
+            maxlength="256"
           />
         </div>
-        <div data-flow-item data-input-label="Cargo">
-          <div class="asyncstate-data">
-            <SelectFlip
-              v-model="form.cargo"
-              name="emp-cargo"
-              scope="3020d431"
-              placeholder="Selecciona un cargo"
-              :options="cargoOptions"
-              :option-height="52"
-            />
-          </div>
+        <div v-if="saveError" class="body-medium error-text" role="alert">
+          {{ saveError }}
         </div>
         <!-- <div data-flow-item class="simple-container align-center gap-8" style="padding: 4px 0">
           <label class="switch-label">
@@ -158,9 +168,10 @@ async function submit(close, event) {
             <button
               type="submit"
               class="style-7 primary-container on-primary-container-text flex-1 rounded big"
+              :disabled="saving"
             >
               <md-ripple aria-hidden="true"></md-ripple>
-              <span>Crear</span>
+              <span>{{ saving ? 'Creando…' : 'Crear' }}</span>
             </button>
           </div>
         </div>

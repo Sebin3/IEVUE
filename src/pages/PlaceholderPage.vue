@@ -11,7 +11,7 @@ const info = computed(() =>
       ? { title: 'Calendario', icon: 'calendar_month', text: 'No se encontraron eventos en el calendario' }
     : {
         title: 'Asistencias',
-        icon: 'assignment_ind',
+        icon: 'nest_clock_farsight_analog',
         text: 'No se encontraron Asistencias',
       },
 )
@@ -21,7 +21,7 @@ const info = computed(() =>
   <div class="app-view">
     <div class="simple-container direction-column gap-24 grow-1">
       <div class="app-header">
-        <span class="display-medium weight-500 text-gradient">{{ info.title }}</span>
+        <h1 class="display-medium weight-500 text-gradient">{{ info.title }}</h1>
       </div>
 
       <div class="simple-container direction-column grow-1">

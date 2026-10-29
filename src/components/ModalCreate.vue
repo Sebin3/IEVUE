@@ -57,7 +57,7 @@ function buscarEmpleado() {
   if (!empleado) {
     form.value.nombres = ''
     form.value.apellidos = ''
-    dniMessage.value = 'No se encontró un empleado con ese DNI.'
+    dniMessage.value = 'No se encontró un docente con ese DNI.'
     return
   }
 
@@ -138,8 +138,8 @@ async function submit(close, event) {
             <button
               type="button"
               class="style-7 for-icon small background outline-light-1 outline-text"
-              aria-label="Buscar empleado por DNI"
-              title="Buscar empleado por DNI"
+              aria-label="Buscar docente por DNI"
+              title="Buscar docente por DNI"
               @click="buscarEmpleado"
             >
               <md-ripple aria-hidden="true"></md-ripple>

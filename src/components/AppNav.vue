@@ -3,9 +3,14 @@ import { useRoute, useRouter } from 'vue-router'
 import { useNavStyle } from '../composables/useNavStyle'
 import { useModal } from '../composables/useModal'
 import { useAuthStore } from '../stores/auth'
+import ModalCreate from './ModalCreate.vue'
+import ModalCreateStudent from './ModalCreateStudent.vue'
+import ModalCreateEmployee from './ModalCreateEmployee.vue'
 import ModalOptions from './ModalOptions.vue'
 import ModalAppearance from './ModalAppearance.vue'
 import SettingsModal from './SettingsModal.vue'
+import FlipModal from './FlipModal.vue'
+import { moduleAvailability } from '../config/modules'
 
 const route = useRoute()
 const router = useRouter()
@@ -14,22 +19,39 @@ const { navStyle } = useNavStyle()
 
 const navItems = [
   { page: 'inicio', icon: 'home', label: 'Inicio' },
-  { page: 'movimientos', icon: 'table_rows', label: 'Trámites' },
+  ...(moduleAvailability.movimientos ? [{ page: 'movimientos', icon: 'table_rows', label: 'Trámites' }] : []),
   { page: 'estudiantes', icon: 'groups', label: 'Estudiantes' },
-  { page: 'empleados', icon: 'badge', label: 'Empleados' },
-  { page: 'asistencias', icon: 'assignment_ind', label: 'Asistencias', desktopOnly: true },
-  { page: 'calendario', icon: 'calendar_view_month', label: 'Calendario', desktopOnly: true },
+  { page: 'empleados', icon: 'groups_3', label: 'Docentes' },
+  { page: 'asistencias', icon: 'nest_clock_farsight_analog', label: 'Asistencias', desktopOnly: true },
+  ...(moduleAvailability.calendario ? [{ page: 'calendario', icon: 'calendar_view_month', label: 'Calendario', desktopOnly: true }] : []),
 ]
 
 const options = useModal()
+const createTramite = useModal()
+const createStudent = useModal()
+const createEmployee = useModal()
 const appearance = useModal()
 const settings = useModal()
+const logoutConfirmation = useModal()
+let confirmLogoutAfterClose = false
 
 function go(page) {
   if (route.name !== page) router.push({ name: page })
 }
 
-function logout() {
+function requestLogout(event) {
+  logoutConfirmation.show(event)
+}
+
+function onOptionsClose() {
+  options.hide()
+}
+
+function finishLogoutConfirmation() {
+  logoutConfirmation.hide()
+  if (!confirmLogoutAfterClose) return
+
+  confirmLogoutAfterClose = false
   auth.logout()
   router.push({ name: 'login' })
 }
@@ -60,6 +82,35 @@ function logout() {
       </button>
     </div>
 
+    <div class="nav-option-buttons" role="group" aria-labelledby="navQuickActionsLabel">
+      <span id="navQuickActionsLabel" class="nav-option-label outline-variant-text">Opciones</span>
+      <button
+        class="nav-button"
+        type="button"
+        :disabled="!moduleAvailability.crearTramite"
+        title="Disponible más adelante"
+        @click="createTramite.show"
+      >
+        <md-ripple aria-hidden="true"></md-ripple>
+        <md-icon aria-hidden="true">note_add</md-icon>
+        <span class="nav-name">Crear trámite</span>
+      </button>
+      <button
+        class="nav-button"
+        type="button"
+        @click="createStudent.show"
+      >
+        <md-ripple aria-hidden="true"></md-ripple>
+        <md-icon aria-hidden="true">person_add</md-icon>
+        <span class="nav-name">Nuevo estudiante</span>
+      </button>
+      <button class="nav-button" type="button" @click="createEmployee.show">
+        <md-ripple aria-hidden="true"></md-ripple>
+        <md-icon aria-hidden="true">badge</md-icon>
+        <span class="nav-name">Nuevo docente</span>
+      </button>
+    </div>
+
     <div class="action-buttons-container">
       <button id="optionsBtn" class="nav-button action-button" @click="options.show">
         <md-ripple aria-hidden="true"></md-ripple>
@@ -69,13 +120,29 @@ function logout() {
     </div>
   </nav>
 
+  <ModalCreate
+    v-if="moduleAvailability.crearTramite && createTramite.open.value"
+    :origin="createTramite.origin.value"
+    @close="createTramite.hide"
+  />
+  <ModalCreateStudent
+    v-if="createStudent.open.value"
+    :origin="createStudent.origin.value"
+    @close="createStudent.hide"
+  />
+  <ModalCreateEmployee
+    v-if="createEmployee.open.value"
+    :origin="createEmployee.origin.value"
+    @close="createEmployee.hide"
+  />
+
   <ModalOptions
     v-if="options.open.value"
     :origin="options.origin.value"
     @settings="settings.show"
     @appearance="appearance.show"
-    @logout="logout"
-    @close="options.hide"
+    @logout="requestLogout"
+    @close="onOptionsClose"
   />
   <ModalAppearance
     v-if="appearance.open.value"
@@ -87,4 +154,47 @@ function logout() {
     :origin="settings.origin.value"
     @close="settings.hide"
   />
+
+  <FlipModal
+    v-if="logoutConfirmation.open.value"
+    :origin="logoutConfirmation.origin.value"
+    window-class="slim"
+    content-class="simple-container direction-column gap-24"
+    content-data-v="4aea44fd"
+    @close="finishLogoutConfirmation"
+  >
+    <template #default="{ close }">
+      <div data-v-4aea44fd class="simple-container direction-column gap-16">
+        <span
+          data-v-4aea44fd
+          class="display-small weight-600 title line-height-1"
+          data-shared-item="title"
+        >
+          Cerrar Sesión
+        </span>
+        <span data-v-4aea44fd class="body-large">
+          ¿Estás seguro(a) de que deseas cerrar sesión?
+        </span>
+      </div>
+      <div data-v-4aea44fd class="simple-container justify-right gap-8">
+        <button
+          data-v-4aea44fd
+          type="button"
+          class="style-7 rounded variant-glass outline-text flex-0-1 justify-center"
+          @click="close()"
+        >
+          <span data-v-4aea44fd>Cancelar</span>
+        </button>
+        <button
+          data-v-4aea44fd
+          type="button"
+          class="style-7 rounded flex-0-1 justify-center text-wrap-nowrap danger-true error-container error-text with-icon-left"
+          @click="confirmLogoutAfterClose = true, close()"
+        >
+          <md-icon data-v-4aea44fd class="filled dynamic" aria-hidden="true">delete</md-icon>
+          Cerrar Sesión
+        </button>
+      </div>
+    </template>
+  </FlipModal>
 </template>

@@ -95,7 +95,7 @@ function reloadApp() {
         <button
           data-v-396f88b5
           class="style-7 transparent justify-left outline-text h-padding-16 big rounded close-options-btn"
-          @click="emit('logout'), close()"
+          @click="emit('logout', $event)"
         >
           <md-ripple aria-hidden="true"></md-ripple>
           <span class="body-large">

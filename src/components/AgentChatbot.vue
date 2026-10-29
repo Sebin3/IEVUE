@@ -20,42 +20,44 @@ function alignTriggerAboveOptions() {
   const trigger = triggerEl.value
   if (!trigger) return
 
-  if (window.matchMedia('(max-width: 1024px)').matches) {
-    const optionsButton = document.getElementById('optionsBtn')
-    const optionsRect = optionsButton?.getBoundingClientRect()
-
-    if (optionsRect?.width && optionsRect.height) {
-      trigger.style.width = `${optionsRect.width}px`
-      trigger.style.height = `${optionsRect.height}px`
-
-      if (window.matchMedia('(max-width: 680px)').matches) {
-        trigger.style.right = `${Math.max(0, window.innerWidth - optionsRect.right)}px`
-        trigger.style.bottom = `${Math.max(0, window.innerHeight - optionsRect.top + 8)}px`
-      } else {
-        const defaultLeft = window.innerWidth - optionsRect.width - 16
-        const defaultTop = window.innerHeight - optionsRect.height - 16
-        const overlapsOptions =
-          defaultLeft < optionsRect.right &&
-          defaultLeft + optionsRect.width > optionsRect.left &&
-          defaultTop < optionsRect.bottom &&
-          defaultTop + optionsRect.height > optionsRect.top
-
-        if (overlapsOptions && optionsRect.left >= optionsRect.width + 8) {
-          trigger.style.right = `${window.innerWidth - optionsRect.left + 8}px`
-          trigger.style.bottom = `${Math.max(0, window.innerHeight - optionsRect.bottom)}px`
-        } else {
-          trigger.style.removeProperty('right')
-          trigger.style.removeProperty('bottom')
-        }
-      }
-      return
-    }
+  const isTablet = window.matchMedia('(min-width: 681px) and (max-width: 1024px)').matches
+  if (!isTablet) {
+    trigger.style.removeProperty('--agent-chatbot-right')
+    trigger.style.removeProperty('--agent-chatbot-bottom')
+    return
   }
 
-  trigger.style.removeProperty('right')
-  trigger.style.removeProperty('bottom')
-  trigger.style.removeProperty('width')
-  trigger.style.removeProperty('height')
+  const optionsRect = document.getElementById('optionsBtn')?.getBoundingClientRect()
+  if (!optionsRect?.width || !optionsRect.height) return
+
+  const triggerSize = 56
+  const gap = 8
+  const rightInset = 16
+  const bottomInset = 16
+  const defaultLeft = window.innerWidth - triggerSize - rightInset
+  const defaultTop = window.innerHeight - triggerSize - bottomInset
+  const overlapsOptions =
+    defaultLeft < optionsRect.right &&
+    defaultLeft + triggerSize > optionsRect.left &&
+    defaultTop < optionsRect.bottom &&
+    defaultTop + triggerSize > optionsRect.top
+
+  if (!overlapsOptions) {
+    trigger.style.removeProperty('--agent-chatbot-right')
+    trigger.style.removeProperty('--agent-chatbot-bottom')
+    return
+  }
+
+  const hasRoomBesideOptions = optionsRect.left >= triggerSize + gap
+  const right = hasRoomBesideOptions
+    ? window.innerWidth - optionsRect.left + gap
+    : window.innerWidth - optionsRect.right
+  const bottom = hasRoomBesideOptions
+    ? window.innerHeight - optionsRect.bottom
+    : window.innerHeight - optionsRect.top + gap
+
+  trigger.style.setProperty('--agent-chatbot-right', `${Math.max(0, right)}px`)
+  trigger.style.setProperty('--agent-chatbot-bottom', `${Math.max(0, bottom)}px`)
 }
 
 onMounted(async () => {

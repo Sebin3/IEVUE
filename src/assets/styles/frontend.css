@@ -1037,6 +1037,7 @@ button.liked[data-v-4f67faeb] {
     gap: 8px;
 }
 
+.avatar,
 .avatar[data-v-7abbc31f] {
     width: 24px;
     height: 24px;
@@ -1050,6 +1051,7 @@ button.liked[data-v-4f67faeb] {
     color: var(--md-sys-color-on-surface);
 }
 
+.avatar--medium,
 .avatar--medium[data-v-7abbc31f] {
     width: 40px;
     height: 40px;
@@ -1057,11 +1059,34 @@ button.liked[data-v-4f67faeb] {
     font-weight: 700;
 }
 
+.avatar--increased,
 .avatar--increased[data-v-7abbc31f] {
     width: 64px;
     height: 64px;
     font-size: 32px;
     font-weight: 800;
+}
+
+.member-avatar,
+.member-avatar[data-v-ef047ab4] {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: var(--avatar-size);
+    height: var(--avatar-size);
+    border-radius: 50%;
+    overflow: hidden;
+    font-size: calc(var(--avatar-size) * .4);
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: -.02em;
+    -webkit-user-select: none;
+    user-select: none;
+    background: var(--member-color, var(--md-sys-color-surface-container-high));
+    color: var(--member-on-color, var(--md-sys-color-on-surface));
+    box-shadow: 0 0 0 .5px color-mix(in srgb,var(--md-sys-color-on-background) 20%,transparent);
+    transition: opacity .16s ease,filter .16s ease;
 }
 
 .name[data-v-7abbc31f] {
@@ -3138,6 +3163,195 @@ input[data-v-4341c8dd]:focus {
         display: flex;
         flex-grow: 1;
     }
+
+    .app-nav.style-6 {
+        display: flex;
+        flex-direction: column;
+        min-width: 270px;
+        padding: 16px 0 16px 16px;
+        box-sizing: border-box;
+        z-index: 1;
+    }
+
+    .app-nav.style-6 .nav-buttons-container,
+    .app-nav.style-6 .action-buttons-container,
+    .app-nav.style-6 .nav-option-buttons {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .app-nav.style-6 .action-buttons-container {
+        margin-top: auto;
+    }
+
+    .app-nav.style-6 .nav-option-buttons {
+        margin-top: 24px;
+    }
+
+    .app-nav.style-6 .nav-option-label {
+        display: flex;
+        align-items: center;
+        height: 40px;
+        padding: 0 16px;
+        opacity: 0.6;
+        user-select: none;
+        font-family: var(--app-main-font);
+        font-size: 16px;
+        font-weight: 500;
+    }
+
+    .app-nav.style-6 button.nav-button {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        height: 40px;
+        padding: 8px 16px;
+        border-radius: 12px;
+        background: transparent;
+        color: var(--md-sys-color-outline);
+        font-family: var(--app-main-font);
+        font-size: 16px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: color 0.15s, background 0.15s;
+        --md-ripple-hover-color: var(--md-sys-color-outline-variant);
+        --md-ripple-pressed-color: var(--md-sys-color-primary-container);
+    }
+
+    .app-nav.style-6 button.nav-button:hover {
+        color: var(--md-sys-color-primary);
+    }
+
+    .app-nav.style-6 button.nav-button[active="true"] {
+        background: color-mix(
+            in srgb,
+            var(--md-sys-color-primary-container) 10%,
+            var(--md-sys-color-background) 90%
+        );
+        color: var(--md-sys-color-primary);
+        animation: iconAnimation 125ms cubic-bezier(0.48, 0, 0, 1);
+        font-variation-settings: "FILL" 1;
+    }
+
+    .app-nav.style-6 button.nav-button.first-button {
+        color: var(--md-sys-color-on-background);
+        margin-bottom: 16px;
+    }
+
+    .app-nav.style-6 button.nav-button.first-button .nav-name {
+        display: flex;
+        flex-grow: 1;
+    }
+
+    .app-nav.style-7 {
+        display: flex;
+        flex-direction: column;
+        min-width: 270px;
+        padding: 16px;
+        box-sizing: border-box;
+        border-right: 1px solid var(--md-sys-color-surface-container);
+        z-index: 1;
+    }
+
+    .app-nav.style-7 .nav-buttons-container,
+    .app-nav.style-7 .action-buttons-container,
+    .app-nav.style-7 .nav-option-buttons {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .app-nav.style-7 .action-buttons-container {
+        margin-top: auto;
+    }
+
+    .app-nav.style-7 .nav-option-buttons {
+        gap: 4px;
+        margin-top: 24px;
+    }
+
+    .app-nav.style-7 .nav-option-label {
+        display: flex;
+        align-items: center;
+        height: 40px;
+        padding: 0 8px;
+        user-select: none;
+        font-family: var(--app-main-font);
+        font-size: 16px;
+        font-weight: 500;
+    }
+
+    .app-nav.style-7 button.nav-button {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        height: 40px;
+        padding: 8px;
+        border-radius: 12px;
+        background: transparent;
+        color: var(--md-sys-color-outline-variant);
+        font-family: var(--app-main-font);
+        font-size: 24px;
+        font-weight: 400;
+        cursor: pointer;
+        transform-origin: left;
+        transition:
+            font-size 0.3s cubic-bezier(0.38, 0.49, 0, 1.5),
+            color 0.15s,
+            transform 0.3s cubic-bezier(0.38, 0.49, 0, 1.2),
+            text-shadow 0.3s cubic-bezier(0.38, 0.49, 0, 1.2);
+        --md-ripple-hover-color: transparent;
+        --md-ripple-pressed-color: transparent;
+        --md-ripple-hover-opacity: 0;
+    }
+
+    .app-nav.style-7 button.nav-button md-icon {
+        display: none;
+    }
+
+    .app-nav.style-7 button.nav-button:hover {
+        color: var(--md-sys-color-primary-container);
+        transform: scale(1.2);
+    }
+
+    .app-nav.style-7 button.nav-button:not(.first-button):has(+ *:hover) {
+        transform: scale(1.09);
+    }
+
+    .app-nav.style-7 button.nav-button:not(.first-button):has(+ * + *:hover) {
+        transform: scale(1.03);
+    }
+
+    .app-nav.style-7 button.nav-button:not(.first-button):hover + * {
+        transform: scale(1.09);
+    }
+
+    .app-nav.style-7 button.nav-button:not(.first-button):hover + * + * {
+        transform: scale(1.03);
+    }
+
+    .app-nav.style-7 button.nav-button[active="true"] {
+        color: var(--md-sys-color-primary);
+        font-size: 28px;
+        font-weight: 600;
+        animation: iconAnimation 125ms cubic-bezier(0.48, 0, 0, 1);
+        font-variation-settings: "FILL" 1;
+    }
+
+    .app-nav.style-7 button.nav-button.first-button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        margin: 8px;
+        padding: 0;
+        border-radius: 64px;
+        background: var(--md-sys-color-surface-container);
+        color: var(--md-sys-color-on-background);
+    }
+
+    .app-nav.style-7 button.nav-button.first-button .nav-name {
+        display: none;
+    }
 }
 
 @media only screen and (max-width: 680px) {
@@ -3253,6 +3467,10 @@ input[data-v-4341c8dd]:focus {
     display: flex;
     justify-content: space-between;
     align-items: center;
+}
+
+.app-header > h1 {
+    margin: 0;
 }
 
 .app-header.style-1 {
@@ -5077,6 +5295,7 @@ button.style-7.slim.with-icon-right {
 
 button.style-7.text-big {
     font-size: 24px;
+    --md-icon-size: 24px;
 }
 
 button.style-7.chunky {
@@ -5128,6 +5347,12 @@ button.primary-container.variant-bright {
     box-shadow:
         0 0 0 0.5px color-mix(in srgb, var(--md-sys-color-primary-container), transparent 88%),
         0 1px 2.5px color-mix(in srgb, var(--md-sys-color-primary-container), transparent 76%);
+}
+
+button.error-container.variant-bright {
+    box-shadow:
+        0 0 0 0.5px color-mix(in srgb, var(--md-sys-color-error-container), transparent 88%),
+        0 1px 2.5px color-mix(in srgb, var(--md-sys-color-error-container), transparent 76%);
 }
 
 button.variant-bright::before {

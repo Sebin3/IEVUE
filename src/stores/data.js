@@ -159,145 +159,14 @@ const state = reactive({
       fecha_creacion: '2026-08-28T15:15:00',
     },
   ],
-  empleados: [
-    {
-      id: 1,
-      dni: '74638291',
-      nombres: 'Romero Garcia',
-      email: 'romerogarcia@peruanosuizo.edu.pe',
-      cargo: 'Administrador',
-      // is_superuser: false,
-      is_active: true,
-      fecha_registro: '2025-01-15T08:00:00',
-    },
-    {
-      id: 2,
-      dni: '70815426',
-      nombres: 'Juan Perez Lopez',
-      email: 'juanperez@peruanosuizo.edu.pe',
-      cargo: 'Profesor',
-      // is_superuser: false,
-      is_active: true,
-      fecha_registro: '2025-03-10T10:30:00',
-    },
-    {
-      id: 3,
-      dni: '76549832',
-      nombres: 'Maria Garcia Torres',
-      email: 'mariagarcia@peruanosuizo.edu.pe',
-      cargo: 'Subdirector',
-      // is_superuser: false,
-      is_active: false,
-      fecha_registro: '2025-05-22T14:00:00',
-    },
-  ],
-  estudiantes: [
-    {
-      codigo_alumno: 1,
-      dni: '74638291',
-      telefono: '987654321',
-      nombres: 'Juan Perez Lopez',
-      correo_institucional: 'juanperez@peruanosuizo.edu.pe',
-      salon_seccion: '1A',
-      estado: 'Activo',
-    },
-    {
-      codigo_alumno: 2,
-      dni: '70841526',
-      telefono: '986543210',
-      nombres: 'Lucia Fernandez Rojas',
-      correo_institucional: 'luciafernandez@peruanosuizo.edu.pe',
-      salon_seccion: '1B',
-      estado: 'Activo',
-    },
-    {
-      codigo_alumno: 3,
-      dni: '76293014',
-      telefono: '985432109',
-      nombres: 'Mateo Sanchez Castillo',
-      correo_institucional: 'mateosanchez@peruanosuizo.edu.pe',
-      salon_seccion: '2A',
-      estado: 'Activo',
-    },
-    {
-      codigo_alumno: 4,
-      dni: '71964830',
-      telefono: '984321098',
-      nombres: 'Valeria Torres Mendoza',
-      correo_institucional: 'valeriatorres@peruanosuizo.edu.pe',
-      salon_seccion: '2B',
-      estado: 'Activo',
-    },
-    {
-      codigo_alumno: 5,
-      dni: '78421569',
-      telefono: '983210987',
-      nombres: 'Diego Ramirez Flores',
-      correo_institucional: 'diegoramirez@peruanosuizo.edu.pe',
-      salon_seccion: '3A',
-      estado: 'Inactivo',
-    },
-    {
-      codigo_alumno: 6,
-      dni: '73590148',
-      telefono: '982109876',
-      nombres: 'Camila Vargas Huaman',
-      correo_institucional: 'camilavargas@peruanosuizo.edu.pe',
-      salon_seccion: '3B',
-      estado: 'Activo',
-    },
-    {
-      codigo_alumno: 7,
-      dni: '79632410',
-      telefono: '981098765',
-      nombres: 'Sebastian Morales Diaz',
-      correo_institucional: 'sebastianmorales@peruanosuizo.edu.pe',
-      salon_seccion: '4A',
-      estado: 'Activo',
-    },
-    {
-      codigo_alumno: 8,
-      dni: '72158643',
-      telefono: '980987654',
-      nombres: 'Andrea Quispe Salazar',
-      correo_institucional: 'andreaquispe@peruanosuizo.edu.pe',
-      salon_seccion: '4B',
-      estado: 'Inactivo',
-    },
-    {
-      codigo_alumno: 9,
-      dni: '76843025',
-      telefono: '979876543',
-      nombres: 'Nicolas Paredes Leon',
-      correo_institucional: 'nicolasparedes@peruanosuizo.edu.pe',
-      salon_seccion: '5A',
-      estado: 'Activo',
-    },
-    {
-      codigo_alumno: 10,
-      dni: '71420986',
-      telefono: '978765432',
-      nombres: 'Daniela Castro Medina',
-      correo_institucional: 'danielacastro@peruanosuizo.edu.pe',
-      salon_seccion: '5B',
-      estado: 'Activo',
-    },
-    {
-      codigo_alumno: 11,
-      dni: '75381642',
-      telefono: '977654321',
-      nombres: 'Gabriel Ortiz Campos',
-      correo_institucional: 'gabrielortiz@peruanosuizo.edu.pe',
-      salon_seccion: '1A',
-      estado: 'Activo',
-    },
-  ],
+  empleados: [],
+  estudiantes: [],
   cargos: ['Profesor', 'Administrador', 'Subdirector', 'Director', 'Auxiliar'],
   nextTramiteId: 5,
   nextEmpleadoId: 4,
   nextCodigoAlumno: 12,
   filters: { prioridad: '', estado: '', month: '', year: '' },
-  studentFilters: { estado: '', salon: '' },
+  studentFilters: { estado: '', salon: '1ro A' },
   query: '',
   empQuery: '',
   studentQuery: '',
@@ -347,6 +216,8 @@ const filteredEstudiantes = computed(() => {
       (student.codigo_alumno && String(student.codigo_alumno).includes(q)) ||
       (student.dni && student.dni.toLowerCase().includes(q)) ||
       (student.nombres && student.nombres.toLowerCase().includes(q)) ||
+      (student.apellidos && student.apellidos.toLowerCase().includes(q)) ||
+      (student.nombre_completo && student.nombre_completo.toLowerCase().includes(q)) ||
       (student.correo_institucional && student.correo_institucional.toLowerCase().includes(q)) ||
       (student.salon_seccion && student.salon_seccion.toLowerCase().includes(q))
     )
@@ -354,6 +225,14 @@ const filteredEstudiantes = computed(() => {
 })
 
 export function useStore() {
+  function replaceEmpleados(records) {
+    state.empleados = Array.isArray(records) ? records : []
+  }
+
+  function replaceEstudiantes(records) {
+    state.estudiantes = Array.isArray(records) ? records : []
+  }
+
   function addTramite(data) {
     const tramite = {
       id: state.nextTramiteId++,
@@ -384,14 +263,15 @@ export function useStore() {
 
   function addEmpleado(data) {
     const emp = {
-      id: state.nextEmpleadoId++,
+      ...data,
+      id: data.id || state.nextEmpleadoId++,
       dni: data.dni || '',
-      nombres: `${data.first_name || ''} ${data.last_name || ''}`.trim(),
+      nombres: data.nombres || `${data.first_name || ''} ${data.last_name || ''}`.trim(),
       email: data.email || '',
       cargo: data.cargo || 'Profesor',
       is_superuser: data.is_superuser || false,
-      is_active: true,
-      fecha_registro: new Date().toISOString(),
+      is_active: data.is_active ?? true,
+      fecha_registro: data.fecha_registro || '',
     }
     state.empleados.unshift(emp)
     return emp
@@ -416,11 +296,14 @@ export function useStore() {
   }
 
   function addEstudiante(data) {
+    const codigoAlumno = data.codigo_alumno || state.nextCodigoAlumno++
     const student = {
-      codigo_alumno: state.nextCodigoAlumno++,
+      ...data,
+      id: data.id || codigoAlumno,
+      codigo_alumno: codigoAlumno,
       dni: data.dni || '',
       telefono: data.telefono || '',
-      nombres: `${data.first_name || ''} ${data.last_name || ''}`.trim(),
+      nombres: data.nombres || `${data.first_name || ''} ${data.last_name || ''}`.trim(),
       correo_institucional: data.correo_institucional || '',
       salon_seccion: data.salon_seccion || '1A',
       estado: data.estado || 'Activo',
@@ -471,6 +354,8 @@ export function useStore() {
     filteredTramites,
     filteredEmpleados,
     filteredEstudiantes,
+    replaceEmpleados,
+    replaceEstudiantes,
     addTramite,
     updateTramite,
     deleteTramite,

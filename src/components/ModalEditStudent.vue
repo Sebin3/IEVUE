@@ -5,51 +5,64 @@ import SelectFlip from './SelectFlip.vue'
 import ModalDeleteStudent from './ModalDeleteStudent.vue'
 import { useModal } from '../composables/useModal'
 import { toast } from 'super-beautiful-toast'
+import { apiPatch } from '../services/api'
 
 const props = defineProps({
   origin: { type: Object, default: null },
   student: { type: Object, default: null },
+  salonOptions: { type: Array, default: () => [] },
 })
 
 const emit = defineEmits(['close', 'save', 'delete'])
 const confirmDelete = useModal()
 const editModal = useModal()
-const studentName = props.student?.nombres || ''
-const nameParts = studentName.split(' ')
+const saving = ref(false)
+const saveError = ref('')
+
+function getStudentSectionId() {
+  const sectionId = props.student?.seccion_id
+  if (sectionId && props.salonOptions.some((option) => String(option.value) === String(sectionId))) {
+    return sectionId
+  }
+
+  const currentSection = String(props.student?.salon_seccion || '').trim()
+  if (!currentSection) return sectionId || ''
+
+  const normalize = (value) => {
+    const compact = String(value || '')
+      .toLocaleLowerCase('es-PE')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[\s-]+/g, '')
+    const classroom = compact.match(/^(\d+)(?:ro|do|er|to)?([a-e])$/)
+    return classroom ? `${classroom[1]}${classroom[2]}` : compact
+  }
+  const normalizedCurrentSection = normalize(currentSection)
+  const matchingOption = props.salonOptions.find((option) =>
+    normalize(option.label) === normalizedCurrentSection,
+  )
+
+  return matchingOption?.value || sectionId || ''
+}
 
 const form = ref({
   dni: props.student?.dni || '',
   telefono: props.student?.telefono || '',
-  first: nameParts[0] || '',
-  last: nameParts.slice(1).join(' ') || '',
+  first: props.student?.nombres || '',
+  last: props.student?.apellidos || '',
   email: props.student?.correo_institucional || '',
-  salon: props.student?.salon_seccion || '',
-  estado: props.student?.estado || 'Activo',
+  salon: getStudentSectionId(),
 })
 
-const salonOptions = [
-  { value: '1A', label: '1A' },
-  { value: '1B', label: '1B' },
-  { value: '2A', label: '2A' },
-  { value: '2B', label: '2B' },
-  { value: '3A', label: '3A' },
-]
-
-const statusOptions = [
-  { value: 'Activo', label: 'Activo' },
-  { value: 'Inactivo', label: 'Inactivo' },
-]
-
 function resetForm() {
-  const parts = (props.student?.nombres || '').split(' ')
+  saveError.value = ''
   form.value = {
     dni: props.student?.dni || '',
     telefono: props.student?.telefono || '',
-    first: parts[0] || '',
-    last: parts.slice(1).join(' ') || '',
+    first: props.student?.nombres || '',
+    last: props.student?.apellidos || '',
     email: props.student?.correo_institucional || '',
-    salon: props.student?.salon_seccion || '',
-    estado: props.student?.estado || 'Activo',
+    salon: getStudentSectionId(),
   }
 }
 
@@ -59,24 +72,44 @@ function startEditing(event) {
 }
 
 async function save(close, event) {
-  emit('save', {
-    ...props.student,
+  if (saving.value) return
+  saving.value = true
+  saveError.value = ''
+  const changes = {
     dni: form.value.dni.trim(),
     telefono: form.value.telefono.trim(),
-    nombres: `${form.value.first.trim()} ${form.value.last.trim()}`.trim(),
-    correo_institucional: form.value.email.trim(),
-    salon_seccion: form.value.salon,
-    estado: form.value.estado,
-  })
-  toast.success('Estudiante actualizado', { icon: null, origin: event?.submitter ?? null })
-  await nextTick()
-  close()
+    nombres: form.value.first.trim(),
+    apellidos: form.value.last.trim(),
+    correo: form.value.email.trim(),
+    seccion_id: form.value.salon,
+  }
+
+  try {
+    await apiPatch(`/api/admin/alumnos/${encodeURIComponent(props.student?.id || '')}`, changes)
+    emit('save', { ...props.student, ...changes })
+    toast.success('Estudiante actualizado', { icon: null, origin: event?.submitter ?? null })
+    await nextTick()
+    close()
+  } catch (error) {
+    saveError.value = error.message || 'No se pudo actualizar al estudiante.'
+    toast.error(saveError.value, { icon: null, origin: event?.submitter ?? null })
+  } finally {
+    saving.value = false
+  }
 }
 
 function onDeleted(close) {
-  emit('delete', props.student?.codigo_alumno)
-  toast.success('Estudiante eliminado', { icon: null })
+  emit('delete', props.student?.id)
   close()
+}
+
+function downloadQr() {
+  if (!props.student?.qr_image) return
+
+  const link = document.createElement('a')
+  link.href = props.student.qr_image
+  link.download = `codigo-qr-${props.student.codigo_alumno || props.student.id}.png`
+  link.click()
 }
 </script>
 
@@ -129,7 +162,7 @@ function onDeleted(close) {
             data-shared-item="student-name"
             data-shared-split="words"
           >
-            {{ student?.nombres }}
+            {{ student?.nombre_completo || `${student?.nombres || ''} ${student?.apellidos || ''}`.trim() }}
           </span>
           <span class="body-large outline-text">Información del estudiante</span>
         </div>
@@ -141,16 +174,25 @@ function onDeleted(close) {
             <button
               type="button"
               class="style-7 for-icon small rounded surface-container-low outline-text student-qr-download"
-              aria-label="Descargar código QR próximamente"
-              title="Descargar código QR próximamente"
-              disabled
+              :aria-label="student?.qr_image ? 'Descargar código QR' : 'Código QR no disponible'"
+              :title="student?.qr_image ? 'Descargar código QR' : 'Código QR no disponible'"
+              :disabled="!student?.qr_image"
+              @click="downloadQr"
             >
               <md-ripple aria-hidden="true"></md-ripple>
               <md-icon aria-hidden="true">download</md-icon>
             </button>
-            <md-icon class="student-qr-icon" aria-hidden="true">qr_code_2</md-icon>
-            <span class="label-large outline-text">Código QR</span>
-            <span class="body-medium outline-text">Próximamente</span>
+            <img
+              v-if="student?.qr_image"
+              class="student-qr-image"
+              :src="student.qr_image"
+              :alt="`Código QR de ${student?.nombre_completo || student?.codigo_alumno || 'estudiante'}`"
+            />
+            <template v-else>
+              <md-icon class="student-qr-icon" aria-hidden="true">qr_code_2</md-icon>
+              <span class="label-large outline-text">Código QR</span>
+              <span class="body-medium outline-text">QR no disponible</span>
+            </template>
           </div>
           <div class="student-identity-stack">
             <div class="content-box border-radius-32 background outline-light-1 student-code-card">
@@ -277,20 +319,17 @@ function onDeleted(close) {
               v-model="form.salon"
               name="student-section"
               placeholder="Selecciona un salón"
+              aria-label="salón y sección"
               :options="salonOptions"
+              :searchable="true"
+              :grouped="true"
+              :max-popup-height="480"
             />
           </div>
         </div>
 
-        <div data-flow-item data-input-label="Estado">
-          <div class="asyncstate-data">
-            <SelectFlip
-              v-model="form.estado"
-              name="student-status"
-              placeholder="Selecciona un estado"
-              :options="statusOptions"
-            />
-          </div>
+        <div v-if="saveError" class="body-medium error-text" role="alert">
+          {{ saveError }}
         </div>
 
         <div
@@ -312,9 +351,10 @@ function onDeleted(close) {
               data-v-6c7476fc
               type="submit"
               class="style-7 primary-container on-primary-container-text flex-1 rounded big"
+              :disabled="saving"
             >
               <md-ripple data-v-6c7476fc aria-hidden="true"></md-ripple>
-              <span data-v-6c7476fc>Guardar</span>
+              <span data-v-6c7476fc>{{ saving ? 'Guardando…' : 'Guardar' }}</span>
             </button>
           </div>
         </div>

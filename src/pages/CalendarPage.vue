@@ -131,7 +131,7 @@ function capitalizeFirst(value) {
   <div class="app-view">
     <div class="simple-container direction-column gap-24 grow-1">
       <div class="app-header calendar-page-header">
-        <span class="display-medium weight-500 text-gradient">{{ monthLabel }}</span>
+        <h1 class="display-medium weight-500 text-gradient">{{ monthLabel }}</h1>
 
         <div class="calendar-toolbar">
           <button
@@ -188,7 +188,7 @@ function capitalizeFirst(value) {
 
           <div class="calendar-month-controls">
             <button
-              class="style-7 for-icon bigger hover-border-radius-round background outline-light-1 outline-text"
+              class="nav-btn calendar-month-arrow"
               type="button"
               aria-label="Mes anterior"
               @click="changeMonth(-1)"
@@ -197,7 +197,7 @@ function capitalizeFirst(value) {
               <md-icon aria-hidden="true">arrow_back</md-icon>
             </button>
             <button
-              class="style-7 for-icon bigger hover-border-radius-round background outline-light-1 outline-text"
+              class="nav-btn calendar-month-arrow"
               type="button"
               aria-label="Mes siguiente"
               @click="changeMonth(1)"

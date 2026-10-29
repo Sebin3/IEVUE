@@ -1,5 +1,6 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { moduleAvailability } from '../config/modules'
 
 const routes = [
   {
@@ -18,7 +19,7 @@ const routes = [
     path: '/movimientos',
     name: 'movimientos',
     component: () => import('../pages/MovimientosPage.vue'),
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, module: 'movimientos' },
   },
   {
     path: '/estudiantes',
@@ -40,14 +41,14 @@ const routes = [
   {
     path: '/asistencias',
     name: 'asistencias',
-    component: () => import('../pages/PlaceholderPage.vue'),
+    component: () => import('../pages/AsistenciasPage.vue'),
     meta: { requiresAuth: true },
   },
   {
     path: '/calendario',
     name: 'calendario',
     component: () => import('../pages/CalendarPage.vue'),
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, module: 'calendario' },
   },
   // Ruta comodin -> inicio. Se redirige por path y no por `name` para no
   // arrastrar el param `pathMatch` a una ruta que no lo declara (vue-router 5
@@ -64,6 +65,7 @@ const router = createRouter({
 router.beforeEach((to) => {
   const auth = useAuthStore()
   if (to.meta.requiresAuth && !auth.isAuthenticated) return { name: 'login' }
+  if (to.meta.module && !moduleAvailability[to.meta.module]) return { name: 'inicio' }
   if (to.name === 'login' && auth.isAuthenticated) return { name: 'inicio' }
 })
 

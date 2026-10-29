@@ -1,9 +1,4 @@
 <script setup>
-/**
- * MODAL: filtros — index.html createFiltersModalHTML() (3915-3994) + los cuatro
- * selects que engancha openFiltersModal (4098-4186).
- * Los cambios escriben en el store (equivalente a currentFilters + applyFilters).
- */
 import { computed } from 'vue'
 import FlipModal from './FlipModal.vue'
 import SelectFlip from './SelectFlip.vue'
@@ -12,13 +7,25 @@ import { useStore } from '../stores/data'
 const props = defineProps({
   origin: { type: Object, default: null },
   scope: { type: String, default: 'movimientos' },
+  modelValue: { type: String, default: '' },
+  attendanceSort: { type: String, default: 'date-desc' },
+  attendanceMonth: { type: String, default: '' },
+  attendanceYear: { type: String, default: '' },
+  studentSalonOptions: { type: Array, default: () => [] },
 })
 
-const emit = defineEmits(['close'])
+const emit = defineEmits([
+  'close',
+  'update:modelValue',
+  'update:attendance-sort',
+  'update:attendance-month',
+  'update:attendance-year',
+])
 
 const { state, setFilter, setStudentFilter } = useStore()
 
 const isStudents = computed(() => props.scope === 'estudiantes')
+const isAttendance = computed(() => props.scope === 'asistencias')
 
 const MESES = [
   'Enero',
@@ -93,9 +100,26 @@ const studentEstadoOptions = [
   { value: 'Inactivo', label: 'Inactivo' },
 ]
 
-const studentSalonOptions = [
-  { value: '', label: 'Todos' },
-  ...['1A', '1B', '2A', '2B', '3A'].map((salon) => ({ value: salon, label: salon })),
+const attendanceSortFilter = computed({
+  get: () => props.attendanceSort,
+  set: (value) => emit('update:attendance-sort', value),
+})
+const attendanceMonthFilter = computed({
+  get: () => props.attendanceMonth,
+  set: (value) => emit('update:attendance-month', value),
+})
+const attendanceYearFilter = computed({
+  get: () => props.attendanceYear,
+  set: (value) => emit('update:attendance-year', value),
+})
+
+const attendanceSortOptions = [
+  { value: 'absent-desc', label: 'Jornadas con más ausentes' },
+  { value: 'late-desc', label: 'Jornadas con más tardanzas' },
+  { value: 'present-desc', label: 'Jornadas con más presentes' },
+  { value: 'total-desc', label: 'Jornadas con más asistencias' },
+  { value: 'date-desc', label: 'Jornadas más recientes' },
+  { value: 'date-asc', label: 'Jornadas más antiguas' },
 ]
 </script>
 
@@ -116,13 +140,48 @@ const studentSalonOptions = [
           </button>
         </div>
         <div class="simple-container align-center gap-8">
-          <md-icon data-shared-item="icon" aria-hidden="true">page_info</md-icon>
+          <md-icon data-shared-item="icon" aria-hidden="true">filter_list</md-icon>
           <span class="headline-small weight-500" data-shared-item="text">Filtros</span>
         </div>
       </div>
 
       <div class="simple-container direction-column gap-8 padding-16">
-        <div v-if="!isStudents" class="simple-container direction-column gap-16">
+        <div v-if="isAttendance" class="simple-container direction-column gap-16">
+          <div class="simple-container direction-column gap-8">
+            <span class="label-large outline-text">Periodo</span>
+            <div class="simple-container gap-8">
+              <SelectFlip
+                v-model="attendanceMonthFilter"
+                class="hover-scale-small"
+                style="max-width: 150px"
+                name="attendance-month-select"
+                scope="3020d431"
+                :options="monthOptions"
+                :width="150"
+              />
+              <SelectFlip
+                v-model="attendanceYearFilter"
+                class="hover-scale-small"
+                style="max-width: 100px"
+                name="attendance-year-select"
+                scope="3020d431"
+                :options="yearOptions"
+                :width="100"
+              />
+            </div>
+          </div>
+          <div class="simple-container direction-column gap-8">
+            <span class="label-large outline-text">Ordenar jornadas por</span>
+            <SelectFlip
+              v-model="attendanceSortFilter"
+              name="attendance-sort-filter"
+              scope="3020d431"
+              :options="attendanceSortOptions"
+              :width="312"
+            />
+          </div>
+        </div>
+        <div v-else-if="!isStudents" class="simple-container direction-column gap-16">
           <div class="simple-container direction-column gap-8">
             <span class="label-large outline-text">Fecha</span>
             <div class="simple-container gap-8">
@@ -174,7 +233,11 @@ const studentSalonOptions = [
                 v-model="studentSalon"
                 name="student-salon-filter"
                 scope="3020d431"
+                aria-label="salón y sección"
                 :options="studentSalonOptions"
+                :searchable="true"
+                :grouped="true"
+                :max-popup-height="480"
                 :width="312"
               />
             </div>
