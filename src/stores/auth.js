@@ -17,6 +17,18 @@ function readStoredUser() {
   }
 }
 
+function tokenExpiry(tokenValue) {
+  try {
+    const encodedPayload = tokenValue.split('.')[1]
+    if (!encodedPayload) return null
+    const normalizedPayload = encodedPayload.replace(/-/g, '+').replace(/_/g, '/')
+    const payload = JSON.parse(atob(normalizedPayload.padEnd(Math.ceil(normalizedPayload.length / 4) * 4, '=')))
+    return Number.isFinite(payload.exp) ? payload.exp * 1000 : null
+  } catch {
+    return null
+  }
+}
+
 const storedToken = localStorage.getItem(TOKEN_KEY) || ''
 const hasMockToken = storedToken.startsWith('mock-token-')
 
@@ -36,6 +48,42 @@ export const useAuthStore = defineStore('auth', () => {
   )
 
   const isAuthenticated = computed(() => !!token.value)
+  let expiryTimer
+
+  function clearExpiryTimer() {
+    if (expiryTimer) window.clearTimeout(expiryTimer)
+    expiryTimer = undefined
+  }
+
+  function scheduleExpiryCheck() {
+    clearExpiryTimer()
+    const expiresAt = tokenExpiry(token.value)
+    if (!expiresAt) return
+
+    const remaining = expiresAt - Date.now()
+    if (remaining <= 0) {
+      window.dispatchEvent(new Event('ievue:session-expired'))
+      return
+    }
+
+    // Browser timers clamp delays near 24 days; recheck if the token lasts longer.
+    expiryTimer = window.setTimeout(() => {
+      if (expiresAt <= Date.now()) window.dispatchEvent(new Event('ievue:session-expired'))
+      else scheduleExpiryCheck()
+    }, Math.min(remaining, 2_147_000_000))
+  }
+
+  function hasValidSession() {
+    if (!token.value) return false
+    const expiresAt = tokenExpiry(token.value)
+    if (expiresAt && expiresAt <= Date.now()) {
+      logout()
+      return false
+    }
+    return true
+  }
+
+  scheduleExpiryCheck()
 
   async function login(emailInput, password) {
     const normalizedEmail = emailInput?.trim().toLocaleLowerCase('es-PE')
@@ -83,9 +131,11 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.setItem(TOKEN_KEY, accessToken)
     localStorage.setItem(USERNAME_KEY, username.value)
     localStorage.setItem(USER_KEY, JSON.stringify(profile))
+    scheduleExpiryCheck()
   }
 
   function logout() {
+    clearExpiryTimer()
     clearApiGetCache()
     token.value = ''
     username.value = ''
@@ -95,5 +145,5 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem(USER_KEY)
   }
 
-  return { token, user, username, isAuthenticated, login, logout }
+  return { token, user, username, isAuthenticated, hasValidSession, login, logout }
 })

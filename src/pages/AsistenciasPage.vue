@@ -7,10 +7,9 @@ import ModalSearch from '../components/ModalSearch.vue'
 import ModalFilters from '../components/ModalFilters.vue'
 import MobileActionMenu from '../components/MobileActionMenu.vue'
 import PaginationControls from '../components/PaginationControls.vue'
-import { useStore } from '../stores/data'
+import { apiGet, apiGetCached, apiPost } from '../services/api'
 import { toast } from 'super-beautiful-toast'
 
-const { state } = useStore()
 const viewMode = ref('grid')
 const searchQuery = ref('')
 const attendanceSort = ref('date-desc')
@@ -20,222 +19,212 @@ const search = useModal()
 const filters = useModal()
 const details = useModal()
 const removeAttendance = useModal()
-const pendingAttendanceDeletion = ref(null)
+const attendanceRecords = ref([])
+const attendanceSections = ref([])
+const attendanceSectionsError = ref('')
+const attendanceDetailRows = ref([])
+const attendanceLoading = ref(true)
+const attendanceLoadError = ref('')
+const attendanceDetailLoading = ref(false)
+const attendanceDetailError = ref('')
+const attendanceDeleteLoading = ref(false)
 const isMobileDetailNav = ref(false)
 const activeDetailSection = ref('statistics')
-let attendanceDetailMediaQuery
-const attendanceGradeGroups = [
-  { grade: 'Primero', sections: ['1A', '1B', '1C', '1D', '1E'] },
-  { grade: 'Segundo', sections: ['2A', '2B', '2C', '2D', '2E'] },
-  { grade: 'Tercero', sections: ['3A', '3B', '3C', '3D', '3E'] },
-  { grade: 'Cuarto', sections: ['4A', '4B', '4C', '4D', '4E'] },
-  { grade: 'Quinto', sections: ['5A', '5B', '5C', '5D', '5E'] },
-]
-const simulatedFirstNames = [
-  'Alonso', 'Brenda', 'Carlos', 'Diana', 'Emilio',
-  'Fernanda', 'Gael', 'Hanna', 'Ian', 'Jimena',
-]
-const simulatedSurnames = [
-  'Alvarado', 'Benites', 'Cabrera', 'Delgado', 'Espinoza',
-  'Flores', 'Guzman', 'Herrera', 'Ibarra', 'Jimenez',
-  'Luna', 'Mendoza', 'Navarro', 'Ortega', 'Paredes',
-  'Quiroz', 'Ramos', 'Soto', 'Valdez', 'Zamora',
-]
-const SIMULATED_SECTION_ROSTER_SIZE = 20
-const attendanceArrivalTimes = [
-  '07:35 a. m.', '07:42 a. m.', '07:48 a. m.', '07:51 a. m.',
-  '07:56 a. m.', '08:02 a. m.', '08:06 a. m.', '08:12 a. m.',
-]
-const attendanceHourLabels = Array.from({ length: 10 }, (_, index) => {
-  const hour = index + 7
-  const displayHour = hour > 12 ? hour - 12 : hour
-  return `${displayHour}${hour < 12 ? 'am' : 'pm'}`
-})
-const simulatedHourlyAttendance = [
-  { interval: '7:00–8:00 a. m.', label: '7am', count: 80 },
-  { interval: '8:00–9:00 a. m.', label: '8am', count: 210 },
-  { interval: '9:00–10:00 a. m.', label: '9am', count: 300 },
-  { interval: '10:00–11:00 a. m.', label: '10am', count: 130 },
-  { interval: '11:00 a. m.–12:00 p. m.', label: '11am', count: 60 },
-  { interval: '12:00–1:00 p. m.', label: '12pm', count: 20 },
-  { interval: '1:00–2:00 p. m.', label: '1pm', count: 0 },
-  { interval: '2:00–3:00 p. m.', label: '2pm', count: 0 },
-  { interval: '3:00–4:00 p. m.', label: '3pm', count: 0 },
-  { interval: '4:00 p. m.', label: '4pm', count: 0 },
-]
-function formatAttendanceMinute(minuteOfDay) {
-  const hour24 = Math.floor(minuteOfDay / 60)
-  const minute = minuteOfDay % 60
-  const hour12 = hour24 % 12 || 12
-  const period = hour24 < 12 ? 'a. m.' : 'p. m.'
-  return `${hour12}:${String(minute).padStart(2, '0')} ${period}`
-}
 const selectedAttendancePointIndex = ref(null)
 const selectedAttendanceTooltipPosition = ref(null)
 const attendanceHourlyChartElement = ref(null)
 const attendanceHourlySvgElement = ref(null)
+const attendanceChartSize = ref({ width: 720, height: 380 })
+const attendanceChartLoadingBars = [24, 38, 31, 66, 44, 82, 58, 36, 48, 27, 55, 40]
+let attendanceDetailMediaQuery
+let attendanceDetailController
+let attendanceHistoryController
+let attendanceChartObserver
+
+function toLocalDateKey(date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function currentDateKey() {
+  return toLocalDateKey(new Date())
+}
+
+function gradeNumber(value) {
+  const text = String(value || '').toLocaleLowerCase('es-PE')
+  const number = text.match(/\d+/)?.[0]
+  if (number) return number
+  const wordGrades = [
+    ['primero', 'primer'], ['segundo', 'segun'], ['tercero', 'tercer'],
+    ['cuarto'], ['quinto'],
+  ]
+  const matchIndex = wordGrades.findIndex((words) => words.some((word) => text.includes(word)))
+  return matchIndex >= 0 ? String(matchIndex + 1) : ''
+}
+
+function sectionTabLabel(section) {
+  const grade = gradeNumber(section.grado) || gradeNumber(section.nombre)
+  const letter = String(section.seccion || section.nombre || '').match(/[A-E]\s*$/i)?.[0]?.trim()
+  return grade && letter ? `${grade}${letter.toUpperCase()}` : String(section.nombre || '')
+}
+
+function gradeLabel(section) {
+  const grade = Number(gradeNumber(section.grado) || gradeNumber(section.nombre))
+  return ['','Primero','Segundo','Tercero','Cuarto','Quinto'][grade] || String(section.grado || 'Secciones')
+}
+
+const attendanceGradeGroups = computed(() => {
+  const groups = new Map()
+  attendanceSections.value
+    .map((section) => ({ ...section, tabLabel: sectionTabLabel(section) }))
+    .sort((left, right) => left.tabLabel.localeCompare(right.tabLabel, 'es-PE', { numeric: true }))
+    .forEach((section) => {
+      const grade = gradeLabel(section)
+      if (!groups.has(grade)) groups.set(grade, [])
+      groups.get(grade).push(section)
+    })
+  return [...groups.entries()].map(([grade, sections]) => ({ grade, sections }))
+})
+
+const attendanceDetailTabs = computed(() => [
+  { id: 'statistics', label: 'Estadística', icon: 'monitoring' },
+  ...attendanceGradeGroups.value.flatMap(({ sections }) =>
+    sections.map((section) => ({ id: String(section.id), label: section.tabLabel, icon: 'groups' })),
+  ),
+])
+
+function normalizeStatus(rawStatus) {
+  const status = String(rawStatus || '').trim().toLocaleLowerCase('es-PE')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  if (status === 'presente') return 'Presente'
+  if (status === 'tardanza' || status === 'tarde') return 'Tardanza'
+  if (status === 'falta' || status === 'ausente') return 'Ausente'
+  if (status === 'justificado') return 'Justificado'
+  return status ? status.charAt(0).toLocaleUpperCase('es-PE') + status.slice(1) : '—'
+}
+
+function normalizeSalon(value) {
+  return String(value || '').trim().toLocaleLowerCase('es-PE')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ')
+}
+
+function attendanceSectionKey(value) {
+  const normalized = normalizeSalon(value)
+  const grade = gradeNumber(normalized)
+  const section = normalized.match(/\b([a-e])\b/i)?.[1]?.toUpperCase()
+  return grade && section ? `${grade}${section}` : ''
+}
+
+function formatAttendanceTime(rawTime) {
+  if (!rawTime) return '—'
+  const value = String(rawTime).trim()
+  const match = value.match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*(a\.?\s*m\.?|p\.?\s*m\.?)?$/i)
+  if (!match) return value
+  let hour = Number(match[1])
+  const minute = match[2]
+  const suffix = match[3]?.toLocaleLowerCase('es-PE').replace(/\s+/g, '')
+  let isAfternoon = suffix?.startsWith('p') || false
+  if (!suffix && hour >= 12) isAfternoon = true
+  if (suffix) {
+    if (hour === 12) hour = 0
+    if (isAfternoon) hour += 12
+  }
+  const displayHour = hour % 12 || 12
+  return `${String(displayHour).padStart(2, '0')}:${minute} ${hour < 12 ? 'a. m.' : 'p. m.'}`
+}
+
+function attendanceMinuteOfDay(value) {
+  const match = String(value || '').trim().match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*(a\.?\s*m\.?|p\.?\s*m\.?)?$/i)
+  if (!match) return null
+  let hour = Number(match[1])
+  const minute = Number(match[2])
+  const suffix = match[3]?.toLocaleLowerCase('es-PE').replace(/\s+/g, '')
+  if (suffix) {
+    const afternoon = suffix.startsWith('p')
+    if (hour === 12) hour = 0
+    if (afternoon) hour += 12
+  }
+  if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null
+  return hour * 60 + minute
+}
+
 const attendanceChartGeometry = computed(() => {
-  const values = details.payload.value?.hourlyAttendance ?? []
-  const width = 720
-  const height = 300
-  const plot = { left: 28, right: 692, top: 24, bottom: 238 }
+  const rows = attendanceDetailRows.value
+  const width = Math.max(320, attendanceChartSize.value.width)
+  const height = 380
+  const plot = { left: 16, right: width - 16, top: 22, bottom: 306 }
   const plotWidth = plot.right - plot.left
   const plotHeight = plot.bottom - plot.top
-  const hourTicks = attendanceHourLabels.map((label, index) => ({
-    label,
-    x: plot.left + index * plotWidth / 9,
-  }))
-  const points = []
-  values.slice(0, -1).forEach((hour, hourIndex) => {
-    const minuteWeights = Array.from({ length: 60 }, (_, minute) => (
-      0.35
-      + (Math.sin(minute / 60 * Math.PI * 2 + hourIndex * 0.71) + 1) * 0.55
-      + (Math.sin(minute * 0.37 + hourIndex * 1.9) + 1) * 0.25
-      + ((minute + hourIndex * 11) % 17 === 0 ? 1 : 0)
-    ))
-    const totalWeight = minuteWeights.reduce((total, weight) => total + weight, 0)
-    const rawMinuteCounts = minuteWeights.map((weight) => hour.count * weight / totalWeight)
-    const minuteCounts = rawMinuteCounts.map(Math.floor)
-    const remainingArrivals = hour.count - minuteCounts.reduce((total, count) => total + count, 0)
-    const largestRemainders = rawMinuteCounts
-      .map((count, minute) => ({ minute, fraction: count - Math.floor(count) }))
-      .sort((left, right) => right.fraction - left.fraction)
-    largestRemainders.slice(0, remainingArrivals).forEach(({ minute }) => { minuteCounts[minute] += 1 })
-
-    minuteCounts.forEach((arrivalsThisMinute, minute) => {
-      const minuteOfDay = (hourIndex + 7) * 60 + minute
-      points.push({
-        interval: formatAttendanceMinute(minuteOfDay),
-        timeLabel: formatAttendanceMinute(minuteOfDay),
-        count: arrivalsThisMinute,
-        minuteOfDay,
-      })
-    })
+  const countsByMinute = new Map()
+  rows.forEach((row) => {
+    if (row.estado === 'Ausente') return
+    const minute = attendanceMinuteOfDay(row.horaRaw)
+    if (minute === null || minute < 7 * 60 || minute > 16 * 60) return
+    countsByMinute.set(minute, (countsByMinute.get(minute) || 0) + 1)
   })
-
-  points.push({
-    interval: '4:00 p. m.',
-    label: '4pm',
-    timeLabel: '4:00 p. m.',
-    count: 0,
-    minuteOfDay: 16 * 60,
+  const points = Array.from({ length: 541 }, (_, index) => {
+    const minuteOfDay = 7 * 60 + index
+    const count = countsByMinute.get(minuteOfDay) || 0
+    return {
+      minuteOfDay,
+      count,
+      interval: formatAttendanceTime(`${String(Math.floor(minuteOfDay / 60)).padStart(2, '0')}:${String(minuteOfDay % 60).padStart(2, '0')}`),
+      timeLabel: formatAttendanceTime(`${String(Math.floor(minuteOfDay / 60)).padStart(2, '0')}:${String(minuteOfDay % 60).padStart(2, '0')}`),
+    }
   })
   const maxCount = Math.max(0, ...points.map(({ count }) => count))
-  const scaleMax = Math.max(10, Math.ceil(maxCount * 1.18))
+  const scaleMax = Math.max(1, Math.ceil(maxCount * 1.18))
   points.forEach((point) => {
     point.x = plot.left + ((point.minuteOfDay - 7 * 60) / (9 * 60)) * plotWidth
     point.y = plot.bottom - point.count / scaleMax * plotHeight
   })
   const linePath = points.map(({ x, y }, index) => `${index === 0 ? 'M' : 'L'} ${x} ${y}`).join(' ')
-  const areaPath = points.length
-    ? `${linePath} L ${points.at(-1).x} ${plot.bottom} L ${points[0].x} ${plot.bottom} Z`
-    : ''
-  const peakIndex = values.reduce((bestIndex, point, index) => (
-    point.count > (values[bestIndex]?.count ?? -1) ? index : bestIndex
-  ), 0)
+  const areaPath = `${linePath} L ${points.at(-1).x} ${plot.bottom} L ${points[0].x} ${plot.bottom} Z`
+  const hourTicks = Array.from({ length: 10 }, (_, index) => {
+    const hour = index + 7
+    return {
+      label: `${hour > 12 ? hour - 12 : hour}${hour < 12 ? 'am' : 'pm'}`,
+      x: plot.left + index * plotWidth / 9,
+    }
+  })
+  const peak = points.reduce((best, point) => point.count > best.count ? point : best, points[0])
 
-  return {
-    width,
-    height,
-    plot,
-    points,
-    hourTicks,
-    linePath,
-    areaPath,
-    peak: values[peakIndex] ?? null,
-  }
+  return { width, height, plot, points, hourTicks, linePath, areaPath, peak: peak.count ? peak : null }
 })
+
 const selectedAttendancePoint = computed(() => {
   if (selectedAttendancePointIndex.value === null) return null
   const point = attendanceChartGeometry.value.points[selectedAttendancePointIndex.value]
   if (!point || !selectedAttendanceTooltipPosition.value) return null
   return { ...point, ...selectedAttendanceTooltipPosition.value }
 })
-const attendanceDetailTabs = computed(() => [
-  { id: 'statistics', label: 'Estadística', icon: 'monitoring' },
-  ...attendanceGradeGroups.flatMap(({ sections }) =>
-    sections.map((section) => ({ id: section, label: section, icon: 'groups' })),
-  ),
-])
-function getSectionAttendanceRows(section, record) {
-  if (!record?.total) return []
-  const sectionIndex = attendanceGradeGroups
-    .flatMap(({ sections }) => sections)
-    .indexOf(section)
-  const toAttendanceRow = (id, fullName, statusSeed) => {
-    const nameParts = fullName.trim().split(/\s+/)
-    const statusIndex = statusSeed % 5
-    const estado = statusIndex === 0
-      ? 'Ausente'
-      : statusIndex <= 2
-        ? 'Tardanza'
-        : 'Presente'
 
-    return {
-      id,
-      nombre: nameParts.shift() || '—',
-      apellido: nameParts.join(' ') || '—',
-      estado,
-      horaIngreso: estado === 'Ausente'
-        ? '—'
-        : attendanceArrivalTimes[statusSeed % attendanceArrivalTimes.length],
-    }
-  }
-
-  const enrolledStudents = state.estudiantes
-    .filter((student) => student.salon_seccion === section)
-    .map((student) => toAttendanceRow(
-      `student-${student.codigo_alumno}`,
-      student.nombres,
-      student.codigo_alumno + sectionIndex,
-    ))
-
-  const additionalStudents = Array.from({
-    length: Math.max(0, SIMULATED_SECTION_ROSTER_SIZE - enrolledStudents.length),
-  }, (_, index) => {
-    const nameIndex = sectionIndex * SIMULATED_SECTION_ROSTER_SIZE + index
-    const surnameIndex = Math.floor(nameIndex / simulatedFirstNames.length) % simulatedSurnames.length
-    const fullName = [
-      simulatedFirstNames[nameIndex % simulatedFirstNames.length],
-      simulatedSurnames[surnameIndex],
-      simulatedSurnames[(surnameIndex + 7) % simulatedSurnames.length],
-    ].join(' ')
-
-    return toAttendanceRow(
-      `sample-${section}-${index + 1}`,
-      fullName,
-      nameIndex + sectionIndex,
-    )
-  })
-
-  return [...enrolledStudents, ...additionalStudents]
+function getSectionAttendanceRows(sectionId) {
+  const section = attendanceSections.value.find((item) => String(item.id) === String(sectionId))
+  if (!section) return []
+  const expectedKey = sectionTabLabel(section)
+  return attendanceDetailRows.value
+    .filter((row) => row.sectionKey === expectedKey)
+    .map((row) => ({
+      id: row.id,
+      nombre: row.nombre,
+      apellido: row.apellido,
+      estado: row.estado,
+      horaIngreso: row.horaIngreso,
+    }))
 }
-function getAttendanceCounts(record) {
-  const counts = { present: 0, late: 0, absent: 0 }
-  if (!record?.total) return counts
 
-  attendanceGradeGroups.forEach(({ sections }) => {
-    sections.forEach((section) => {
-      getSectionAttendanceRows(section, record).forEach(({ estado }) => {
-        if (estado === 'Presente') counts.present += 1
-        else if (estado === 'Tardanza') counts.late += 1
-        else if (estado === 'Ausente') counts.absent += 1
-      })
-    })
-  })
-
-  return counts
-}
 const sectionAttendanceRows = computed(() => (
-  activeDetailSection.value === 'statistics'
-    ? []
-    : getSectionAttendanceRows(activeDetailSection.value, details.payload.value)
+  activeDetailSection.value === 'statistics' ? [] : getSectionAttendanceRows(activeDetailSection.value)
 ))
-const sectionAttendanceSummary = computed(() => ({
-  present: sectionAttendanceRows.value.filter((student) => student.estado === 'Presente').length,
-  late: sectionAttendanceRows.value.filter((student) => student.estado === 'Tardanza').length,
-  absent: sectionAttendanceRows.value.filter((student) => student.estado === 'Ausente').length,
-}))
+const sectionAttendanceSummary = computed(() => sectionAttendanceRows.value.reduce((counts, student) => {
+  if (student.estado === 'Presente') counts.present += 1
+  else if (student.estado === 'Tardanza') counts.late += 1
+  else if (student.estado === 'Ausente') counts.absent += 1
+  return counts
+}, { present: 0, late: 0, absent: 0 }))
 const ATTENDANCE_SECTION_PAGE_SIZE = 10
 const {
   currentPage: attendanceSectionPage,
@@ -248,8 +237,9 @@ watch(
 )
 const activeDetailTabOffset = computed(() => {
   if (activeDetailSection.value === 'statistics') return 0
-  const grade = Number(activeDetailSection.value[0])
-  const sectionOffset = (activeDetailSection.value.charCodeAt(1) - 'A'.charCodeAt(0)) * 40
+  const tab = attendanceDetailTabs.value.find((item) => item.id === activeDetailSection.value)
+  const grade = Number(tab?.label.match(/^\d/)?.[0] || 1)
+  const sectionOffset = Math.max(0, (tab?.label.charCodeAt(1) || 65) - 65) * 40
   return 72 + (grade - 1) * 232 + sectionOffset
 })
 
@@ -257,58 +247,138 @@ function syncAttendanceDetailViewport(event) {
   isMobileDetailNav.value = event.matches
 }
 
+function setAttendanceChartSize(element) {
+  attendanceChartObserver?.disconnect()
+  attendanceChartObserver = null
+  if (!element || typeof ResizeObserver === 'undefined') return
+  attendanceChartObserver = new ResizeObserver(([entry]) => {
+    attendanceChartSize.value = {
+      width: Math.max(320, entry.contentRect.width),
+      height: Math.max(320, entry.contentRect.height),
+    }
+  })
+  attendanceChartObserver.observe(element)
+}
+
+watch(attendanceHourlyChartElement, setAttendanceChartSize, { flush: 'post' })
+watch(() => details.open.value, (isOpen) => {
+  if (!isOpen) attendanceDetailController?.abort()
+})
+
+const today = new Date()
+attendanceMonth.value = String(today.getMonth() + 1)
+attendanceYear.value = String(today.getFullYear())
+
+function attendanceRange() {
+  const now = new Date()
+  const year = Number(attendanceYear.value || now.getFullYear())
+  const month = Number(attendanceMonth.value)
+  const start = month
+    ? new Date(year, month - 1, 1)
+    : new Date(year, 0, 1)
+  const selectedEnd = month
+    ? new Date(year, month, 0)
+    : new Date(year, 11, 31)
+  const end = selectedEnd > now ? new Date(now.getFullYear(), now.getMonth(), now.getDate()) : selectedEnd
+  return { start, end }
+}
+
+function createWeekdayRecords(start, end, summaryRows) {
+  if (start > end || !Array.isArray(summaryRows) || summaryRows.length === 0) return []
+  const summaries = new Map(summaryRows.map((row) => {
+    const present = Number(row.presentes) || 0
+    const late = Number(row.tardanzas) || 0
+    const absent = Number(row.ausentes) || 0
+    return [String(row.fecha).slice(0, 10), { present, late, absent }]
+  }))
+  const records = []
+  const cursor = new Date(start.getFullYear(), start.getMonth(), start.getDate())
+  while (cursor <= end) {
+    const day = cursor.getDay()
+    if (day !== 0 && day !== 6) {
+      const date = toLocalDateKey(cursor)
+      const counts = summaries.get(date) || { present: 0, late: 0, absent: 0 }
+      records.push({
+        id: date,
+        date,
+        present: counts.present,
+        late: counts.late,
+        absent: counts.absent,
+        total: counts.present + counts.late,
+        registeredTotal: counts.present + counts.late + counts.absent,
+      })
+    }
+    cursor.setDate(cursor.getDate() + 1)
+  }
+  return records.reverse()
+}
+
+async function loadAttendanceRecords() {
+  attendanceHistoryController?.abort()
+  const controller = new AbortController()
+  attendanceHistoryController = controller
+  attendanceLoading.value = true
+  attendanceLoadError.value = ''
+  const { start, end } = attendanceRange()
+  try {
+    if (start > end) {
+      attendanceRecords.value = []
+      return
+    }
+    const from = toLocalDateKey(start)
+    const to = toLocalDateKey(end)
+    const rows = await apiGetCached(
+      `/api/admin/asistencia/historial?desde=${from}&hasta=${to}`,
+      { signal: controller.signal, ttlMs: 30_000 },
+    )
+    if (controller.signal.aborted) return
+    attendanceRecords.value = createWeekdayRecords(start, end, rows)
+  } catch (error) {
+    if (error.name === 'AbortError') return
+    attendanceRecords.value = []
+    attendanceLoadError.value = error.message || 'No se pudo cargar el historial de asistencias.'
+  } finally {
+    if (!controller.signal.aborted) attendanceLoading.value = false
+  }
+}
+
+async function loadAttendanceSections() {
+  try {
+    const sections = await apiGetCached('/api/secciones')
+    attendanceSections.value = Array.isArray(sections) ? sections : []
+  } catch (error) {
+    attendanceSectionsError.value = error.message || 'No se pudieron cargar las secciones.'
+  }
+}
+
+watch([attendanceMonth, attendanceYear], () => {
+  attendanceCurrentPage.value = 1
+  loadAttendanceRecords()
+})
+
 onMounted(() => {
   attendanceDetailMediaQuery = window.matchMedia('(max-width: 680px)')
   syncAttendanceDetailViewport(attendanceDetailMediaQuery)
   attendanceDetailMediaQuery.addEventListener('change', syncAttendanceDetailViewport)
+  loadAttendanceRecords()
+  loadAttendanceSections()
 })
 
 onBeforeUnmount(() => {
   attendanceDetailMediaQuery?.removeEventListener('change', syncAttendanceDetailViewport)
+  attendanceDetailController?.abort()
+  attendanceHistoryController?.abort()
+  attendanceChartObserver?.disconnect()
 })
 
-function toLocalDateKey(date) {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
-
-const today = new Date()
-const todayDateKey = toLocalDateKey(today)
-attendanceMonth.value = String(today.getMonth() + 1)
-attendanceYear.value = String(today.getFullYear())
-const attendanceDayCount = Math.floor((Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())
-  - Date.UTC(today.getFullYear(), 0, 1)) / 86_400_000) + 1
-const attendanceRecords = ref(Array.from({ length: attendanceDayCount }, (_, dayOffset) => {
-  const date = new Date(today.getFullYear(), 0, dayOffset + 1)
-  const dateKey = toLocalDateKey(date)
-  const isWeekday = date.getDay() !== 0 && date.getDay() !== 6
-  const hourlyAttendance = isWeekday && dateKey === todayDateKey ? simulatedHourlyAttendance : []
-
-  return {
-    id: dateKey,
-    date: dateKey,
-    total: hourlyAttendance.reduce((total, point) => total + point.count, 0),
-    hourlyAttendance,
-  }
-}).filter((record) => {
-  const weekday = new Date(`${record.date}T00:00:00`).getDay()
-  return weekday !== 0 && weekday !== 6
-}).reverse())
-
 function attendanceDateLabel(record) {
-  if (record.date === toLocalDateKey(new Date())) return 'Hoy'
-
+  if (record.date === currentDateKey()) return 'Hoy'
   const date = new Date(`${record.date}T00:00:00`)
   const parts = new Intl.DateTimeFormat('es-PE', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
+    weekday: 'long', day: 'numeric', month: 'long',
   }).formatToParts(date)
   const part = (type) => parts.find((item) => item.type === type)?.value ?? ''
   const capitalize = (value) => value.charAt(0).toLocaleUpperCase('es-PE') + value.slice(1)
-
   return `${capitalize(part('weekday'))} ${part('day')} de ${capitalize(part('month'))}`
 }
 
@@ -317,22 +387,59 @@ function attendanceTitle(record) {
   return dateLabel === 'Hoy' ? 'Asistencia de Hoy' : `Asistencia del ${dateLabel}`
 }
 
+function getAttendanceCounts(record) {
+  return { present: record?.present || 0, late: record?.late || 0, absent: record?.absent || 0 }
+}
+
+async function loadAttendanceDetail(record) {
+  attendanceDetailController?.abort()
+  const controller = new AbortController()
+  attendanceDetailController = controller
+  attendanceDetailLoading.value = true
+  attendanceDetailError.value = ''
+  attendanceDetailRows.value = []
+  try {
+    const rows = await apiGet(`/api/admin/asistencia/fecha?fecha=${encodeURIComponent(record.date)}`, {
+      signal: controller.signal,
+    })
+    if (controller.signal.aborted) return
+    attendanceDetailRows.value = (Array.isArray(rows) ? rows : []).map((row) => {
+      const name = String(row.nombre_completo || '').trim().split(/\s+/)
+      const salon = String(row.salon || '')
+      return {
+        id: row.id,
+        personaId: row.persona_id,
+        nombre: name.shift() || '—',
+        apellido: name.join(' ') || '—',
+        salon,
+        sectionKey: attendanceSectionKey(salon),
+        estado: normalizeStatus(row.estado_entrada),
+        horaRaw: row.hora_registro || '',
+        horaIngreso: formatAttendanceTime(row.hora_registro),
+      }
+    })
+  } catch (error) {
+    if (error.name === 'AbortError') return
+    attendanceDetailError.value = error.message || 'No se pudo cargar el detalle de esta jornada.'
+  } finally {
+    if (!controller.signal.aborted) attendanceDetailLoading.value = false
+  }
+}
+
 function downloadAttendanceRecord(record) {
   const columns = ['Fecha', 'Total de asistencias', 'Salón y sección', 'Nombre', 'Apellido', 'Estado', 'Hora de ingreso']
-  const studentRows = attendanceGradeGroups.flatMap(({ sections }) => sections.flatMap((section) => (
-    getSectionAttendanceRows(section, record).map((student) => [
-      record.date,
-      record.total,
-      section,
-      student.nombre,
-      student.apellido,
-      student.estado,
-      student.horaIngreso,
-    ])
-  )))
-  const rows = [columns, ...(studentRows.length ? studentRows : [[record.date, record.total, '', '', '', '', '']])]
-  const csv = rows
-    .map((row) => row.map((value) => `"${String(value).replace(/"/g, '""')}"`).join(','))
+  const rows = attendanceDetailRows.value.map((student) => [
+    record.date,
+    record.total,
+    student.salon,
+    student.nombre,
+    student.apellido,
+    student.estado,
+    student.horaIngreso,
+  ])
+  const csvRows = [columns, ...(rows.length ? rows : [[record.date, record.total, '', '', '', '', '']])]
+  const csv = csvRows
+    .map((row) => row.map((value) => `"${String(value ?? '').replace(/"/g, '""')}"`).join(','))
     .join('\r\n')
   const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' })
   const url = URL.createObjectURL(blob)
@@ -349,21 +456,29 @@ function openAttendanceDetails(event, record) {
   selectedAttendancePointIndex.value = null
   selectedAttendanceTooltipPosition.value = null
   details.show(event, record)
+  loadAttendanceDetail(record)
 }
 
-function confirmDeleteAttendance(close) {
-  pendingAttendanceDeletion.value = removeAttendance.payload.value
-  close()
-}
-
-function finishDeleteAttendance() {
-  const record = pendingAttendanceDeletion.value
-  if (record) {
-    attendanceRecords.value = attendanceRecords.value.filter(({ id }) => id !== record.id)
-    toast.success('Asistencia eliminada', { icon: null })
+async function confirmDeleteAttendance(close) {
+  const record = removeAttendance.payload.value
+  if (!record || attendanceDeleteLoading.value) return
+  attendanceDeleteLoading.value = true
+  try {
+    const rows = await apiGet(`/api/admin/asistencia/fecha?fecha=${encodeURIComponent(record.date)}`)
+    const ids = (Array.isArray(rows) ? rows : []).map((row) => row.id).filter(Boolean)
+    if (ids.length) {
+      await apiPost('/api/asistencia/eliminar-batch', { ids })
+      toast.success('Asistencia eliminada', { icon: null })
+    } else {
+      toast.success('La jornada no tiene registros que eliminar', { icon: null })
+    }
+    await loadAttendanceRecords()
+    close()
+  } catch (error) {
+    toast.error(error.message || 'No se pudo eliminar la asistencia', { icon: null })
+  } finally {
+    attendanceDeleteLoading.value = false
   }
-  pendingAttendanceDeletion.value = null
-  removeAttendance.hide()
 }
 
 function selectAttendanceDetailTab(tabId) {
@@ -378,7 +493,6 @@ function selectAttendanceChartPoint(index, event) {
   const svg = event.currentTarget?.ownerSVGElement ?? attendanceHourlySvgElement.value
   const point = attendanceChartGeometry.value.points[index]
   if (!chart || !svg || !point) return
-
   const svgPoint = svg.createSVGPoint()
   svgPoint.x = point.x
   svgPoint.y = point.y
@@ -394,13 +508,11 @@ function selectAttendanceChartAtPointer(event) {
   const svg = attendanceHourlySvgElement.value
   const points = attendanceChartGeometry.value.points
   if (!svg || !points.length) return
-
   const bounds = svg.getBoundingClientRect()
   const x = Math.max(0, Math.min(attendanceChartGeometry.value.width,
     (event.clientX - bounds.left) / bounds.width * attendanceChartGeometry.value.width))
   let nearestIndex = 0
   let nearestDistance = Infinity
-
   points.forEach((point, index) => {
     const distance = Math.abs(point.x - x)
     if (distance < nearestDistance) {
@@ -408,7 +520,6 @@ function selectAttendanceChartAtPointer(event) {
       nearestIndex = index
     }
   })
-
   selectAttendanceChartPoint(nearestIndex, { currentTarget: { ownerSVGElement: svg } })
 }
 
@@ -441,51 +552,31 @@ function moveAttendanceDetailTab(event, direction) {
 
 const filteredAttendanceRecords = computed(() => {
   const query = searchQuery.value.trim().toLocaleLowerCase('es-PE')
-
   const records = attendanceRecords.value.filter((record) => {
     const date = new Date(`${record.date}T00:00:00`)
-    const counts = getAttendanceCounts(record)
     const matchesSearch = attendanceTitle(record).toLocaleLowerCase('es-PE').includes(query)
-    const matchesMonth = attendanceMonth.value === ''
-      || date.getMonth() + 1 === Number(attendanceMonth.value)
-    const matchesYear = attendanceYear.value === ''
-      || date.getFullYear() === Number(attendanceYear.value)
-
+    const matchesMonth = attendanceMonth.value === '' || date.getMonth() + 1 === Number(attendanceMonth.value)
+    const matchesYear = attendanceYear.value === '' || date.getFullYear() === Number(attendanceYear.value)
     return matchesSearch && matchesMonth && matchesYear
   })
-
-  if (attendanceSort.value === 'date-asc') {
-    return records.sort((left, right) => left.date.localeCompare(right.date))
-  }
-
-  if (attendanceSort.value === 'date-desc') {
-    return records.sort((left, right) => right.date.localeCompare(left.date))
-  }
-
+  if (attendanceSort.value === 'date-asc') return records.sort((left, right) => left.date.localeCompare(right.date))
+  if (attendanceSort.value === 'date-desc') return records.sort((left, right) => right.date.localeCompare(left.date))
   const countKey = {
     'absent-desc': 'absent',
     'late-desc': 'late',
     'present-desc': 'present',
     'total-desc': 'total',
   }[attendanceSort.value]
-
-  return records.sort((left, right) => {
-    const leftCount = countKey === 'total' ? left.total : getAttendanceCounts(left)[countKey]
-    const rightCount = countKey === 'total' ? right.total : getAttendanceCounts(right)[countKey]
-    return rightCount - leftCount || right.date.localeCompare(left.date)
-  })
+  return records.sort((left, right) => right[countKey] - left[countKey] || right.date.localeCompare(left.date))
 })
 
 const ATTENDANCE_PAGE_SIZE = 6
 const {
-  currentPage,
+  currentPage: attendanceCurrentPage,
   paginatedItems: paginatedAttendanceRecords,
   setPage,
 } = usePagination(filteredAttendanceRecords, ATTENDANCE_PAGE_SIZE)
-watch(
-  [searchQuery, attendanceSort, attendanceMonth, attendanceYear],
-  () => { currentPage.value = 1 },
-)
+watch([searchQuery, attendanceSort], () => { attendanceCurrentPage.value = 1 })
 
 const mobileActions = [
   { id: 'search', label: 'Buscar', icon: 'search' },
@@ -502,11 +593,12 @@ function handleMobileAction(action, event) {
   <main class="app-view attendance-view" :class="{ 'align-center': viewMode === 'grid' }">
     <div
       class="simple-container direction-column gap-24"
-      :class="viewMode === 'grid' ? 'width-100 max-width-1000' : 'grow-1'"
+      :class="viewMode === 'grid' ? 'width-100 max-width-1000 grow-1' : 'grow-1'"
     >
       <header class="app-header">
         <h1 class="display-medium weight-500 text-gradient">Asistencias</h1>
         <MobileActionMenu
+          class="attendance-mobile-menu"
           :actions="mobileActions"
           @select="handleMobileAction"
         />
@@ -533,6 +625,44 @@ function handleMobileAction(action, event) {
       </header>
 
       <section
+        v-if="attendanceLoading"
+        class="attendance-records attendance-grid attendance-grid-loading"
+        role="status"
+        aria-label="Cargando jornadas de asistencia"
+      >
+        <article v-for="skeleton in 6" :key="skeleton" class="attendance-card-section" aria-hidden="true">
+          <div class="simple-container align-center attendance-date-heading">
+            <span class="attendance-skeleton-block animation-loading-1" style="width: 132px; height: 16px; border-radius: 8px"></span>
+          </div>
+          <div class="content-box light-color aspect-ratio-1-1 justify-between border-radius-40 padding-24 direction-column gap-16 overflow-hidden">
+            <div class="simple-container justify-between width-100">
+              <div class="simple-container direction-column gap-8">
+                <span class="attendance-skeleton-block animation-loading-1" style="width: 112px; height: 16px; border-radius: 8px"></span>
+                <span class="attendance-skeleton-block animation-loading-1" style="width: 148px; height: 16px; border-radius: 8px"></span>
+              </div>
+              <span class="attendance-skeleton-block animation-loading-1" style="width: 24px; height: 24px; border-radius: 50%"></span>
+            </div>
+            <div class="simple-container justify-right gap-8 attendance-grid-actions">
+              <span class="attendance-skeleton-block animation-loading-1" style="width: 82px; height: 40px; border-radius: 24px"></span>
+              <span class="attendance-skeleton-block animation-loading-1" style="width: 40px; height: 40px; border-radius: 50%"></span>
+            </div>
+          </div>
+        </article>
+      </section>
+      <div v-else-if="attendanceLoadError" class="content-box light-color border-radius-32 attendance-list-empty" role="alert">
+        <div class="simple-container direction-column align-center gap-8 attendance-detail-message">
+          <md-icon class="pretty-minimal outline-text" aria-hidden="true">cloud_off</md-icon>
+          <span class="title-medium weight-500">No se pudo cargar el historial</span>
+          <span class="body-medium outline-text">{{ attendanceLoadError }}</span>
+          <button type="button" class="style-7 rounded background on-background-text" @click="loadAttendanceRecords">
+            <md-ripple aria-hidden="true"></md-ripple>
+            Reintentar
+          </button>
+        </div>
+      </div>
+
+      <section
+        v-else-if="filteredAttendanceRecords.length > 0"
         class="attendance-records"
         :class="viewMode === 'grid' ? 'attendance-grid' : 'attendance-list'"
         :aria-label="viewMode === 'grid' ? 'Asistencias en cuadrícula' : 'Asistencias en lista'"
@@ -592,7 +722,10 @@ function handleMobileAction(action, event) {
                   type="button"
                   class="style-7 for-icon small hover-error-container background outline-text"
                   :aria-label="`Eliminar ${attendanceTitle(record).toLocaleLowerCase('es-PE')}`"
-                  :title="`Eliminar ${attendanceTitle(record).toLocaleLowerCase('es-PE')}`"
+                  :title="record.registeredTotal
+                    ? `Eliminar ${attendanceTitle(record).toLocaleLowerCase('es-PE')}`
+                    : 'No hay registros para eliminar'"
+                  :disabled="record.registeredTotal === 0"
                   @click.stop="removeAttendance.show($event, record)"
                 >
                   <md-ripple aria-hidden="true"></md-ripple>
@@ -615,6 +748,7 @@ function handleMobileAction(action, event) {
                   class="style-7 for-icon small hover-primary-container background outline-text"
                   :aria-label="`Ver ${attendanceTitle(record).toLocaleLowerCase('es-PE')}`"
                   :title="`Ver ${attendanceTitle(record).toLocaleLowerCase('es-PE')}`"
+                  @click="openAttendanceDetails($event, record)"
                 >
                   <md-ripple aria-hidden="true"></md-ripple>
                   <md-icon aria-hidden="true">arrow_outward</md-icon>
@@ -624,7 +758,10 @@ function handleMobileAction(action, event) {
                   type="button"
                   class="style-7 for-icon small hover-error-container background outline-text"
                   :aria-label="`Eliminar ${attendanceTitle(record).toLocaleLowerCase('es-PE')}`"
-                  :title="`Eliminar ${attendanceTitle(record).toLocaleLowerCase('es-PE')}`"
+                  :title="record.registeredTotal
+                    ? `Eliminar ${attendanceTitle(record).toLocaleLowerCase('es-PE')}`
+                    : 'No hay registros para eliminar'"
+                  :disabled="record.registeredTotal === 0"
                   @click="removeAttendance.show($event, record)"
                 >
                   <md-ripple aria-hidden="true"></md-ripple>
@@ -635,18 +772,23 @@ function handleMobileAction(action, event) {
           </div>
         </article>
 
-        <div
-          v-if="filteredAttendanceRecords.length === 0"
-          class="content-box background outline-light-1 attendance-empty-state"
-        >
-          <span class="body-medium outline-text">No se encontraron asistencias</span>
-        </div>
       </section>
 
+      <div v-else class="simple-container direction-column grow-1">
+        <div class="simple-container grow-1">
+          <div class="content-box light-color grow-1 align-center justify-center padding-24 attendance-empty-placeholder">
+            <md-icon class="pretty-minimal outline-text" aria-hidden="true">
+              nest_clock_farsight_analog
+            </md-icon>
+            <span class="headline-small weight-500 outline-text">No se encontraron Asistencias</span>
+          </div>
+        </div>
+      </div>
+
       <PaginationControls
-        v-if="filteredAttendanceRecords.length > 0"
+        v-if="!attendanceLoading && !attendanceLoadError && filteredAttendanceRecords.length > 0"
         :class="{ 'attendance-list-pagination': viewMode === 'list' }"
-        :page="currentPage"
+        :page="attendanceCurrentPage"
         :page-size="ATTENDANCE_PAGE_SIZE"
         :total="filteredAttendanceRecords.length"
         @update:page="setPage"
@@ -701,17 +843,17 @@ function handleMobileAction(action, event) {
             <span class="attendance-detail-grade-label" aria-hidden="true">{{ group.grade }}</span>
             <button
               v-for="section in group.sections"
-              :key="section"
-              :id="`attendance-tab-${section}`"
-              :data-attendance-tab="section"
+              :key="section.id"
+              :id="`attendance-tab-${section.id}`"
+              :data-attendance-tab="section.id"
               type="button"
               role="tab"
               class="attendance-detail-tab attendance-detail-section-tab"
-              :class="{ active: activeDetailSection === section }"
-              :aria-selected="activeDetailSection === section"
-              :aria-controls="`attendance-detail-panel-${section}`"
-              :tabindex="activeDetailSection === section ? 0 : -1"
-              @click="selectAttendanceDetailTab(section)"
+              :class="{ active: activeDetailSection === String(section.id) }"
+              :aria-selected="activeDetailSection === String(section.id)"
+              :aria-controls="`attendance-detail-panel-${section.id}`"
+              :tabindex="activeDetailSection === String(section.id) ? 0 : -1"
+              @click="selectAttendanceDetailTab(String(section.id))"
               @keydown.left.prevent="moveAttendanceDetailTab($event, -1)"
               @keydown.right.prevent="moveAttendanceDetailTab($event, 1)"
               @keydown.up.prevent="moveAttendanceDetailTab($event, -1)"
@@ -720,7 +862,7 @@ function handleMobileAction(action, event) {
               @keydown.end.prevent="selectAttendanceDetailTab(attendanceDetailTabs[attendanceDetailTabs.length - 1].id)"
             >
               <md-icon aria-hidden="true">groups</md-icon>
-              <span>{{ section }}</span>
+              <span>{{ section.tabLabel }}</span>
             </button>
           </template>
         </div>
@@ -738,6 +880,7 @@ function handleMobileAction(action, event) {
                 class="style-7 for-icon small rounded surface-container-low outline-text"
                 aria-label="Descargar registro de asistencia"
                 title="Descargar registro del día"
+                :disabled="attendanceDetailLoading || Boolean(attendanceDetailError)"
                 @click="downloadAttendanceRecord(details.payload.value)"
               >
                 <md-ripple aria-hidden="true"></md-ripple>
@@ -764,12 +907,32 @@ function handleMobileAction(action, event) {
           aria-labelledby="attendance-tab-statistics"
           aria-live="polite"
         >
-          <template v-if="details.payload.value.total > 0">
+          <div v-if="attendanceDetailLoading" class="attendance-detail-chart-skeleton" role="status" aria-label="Cargando gráfico de asistencias">
+            <header class="attendance-hourly-header" aria-hidden="true">
+              <div class="simple-container direction-column gap-8">
+                <span class="attendance-skeleton-block animation-loading-1" style="width: 170px; height: 18px; border-radius: 9px"></span>
+                <span class="attendance-skeleton-block animation-loading-1" style="width: 228px; max-width: 65vw; height: 13px; border-radius: 7px"></span>
+              </div>
+              <span class="attendance-skeleton-block animation-loading-1" style="width: 68px; height: 13px; border-radius: 7px"></span>
+            </header>
+            <div class="attendance-hourly-chart attendance-hourly-chart-loading" aria-hidden="true">
+              <span
+                v-for="(barHeight, index) in attendanceChartLoadingBars"
+                :key="index"
+                class="attendance-chart-loading-bar animation-loading-1"
+                :style="{ height: `${barHeight}%` }"
+              ></span>
+            </div>
+          </div>
+          <div v-else-if="attendanceDetailError" class="simple-container align-center justify-center grow-1" role="alert">
+            <span class="body-medium outline-text">{{ attendanceDetailError }}</span>
+          </div>
+          <template v-else-if="details.payload.value.total > 0 && attendanceChartGeometry.peak">
             <header class="attendance-hourly-header">
               <div class="simple-container direction-column gap-4">
                 <span class="title-medium weight-500">Asistencias del Dia</span>
                 <span class="body-medium outline-text">
-                  {{ attendanceChartGeometry.peak?.count }} asistencias en el intervalo {{ attendanceChartGeometry.peak?.interval }}
+                  {{ attendanceChartGeometry.peak.count }} asistencias en el intervalo {{ attendanceChartGeometry.peak.interval }}
                 </span>
               </div>
               <span class="body-small outline-text attendance-hourly-total">
@@ -806,7 +969,7 @@ function handleMobileAction(action, event) {
                   :key="tick.label"
                   class="attendance-hourly-time"
                   :x="tick.x"
-                  y="276"
+                  y="352"
                   text-anchor="middle"
                 >
                   {{ tick.label }}
@@ -847,9 +1010,13 @@ function handleMobileAction(action, event) {
           </template>
           <div v-else class="simple-container direction-column align-center gap-8 attendance-detail-message attendance-statistics-empty">
             <md-icon class="pretty-minimal outline-text" aria-hidden="true">groups</md-icon>
-            <span class="title-medium weight-500">No hay asistencias registradas</span>
+            <span class="title-medium weight-500">
+              {{ details.payload.value.registeredTotal ? 'No hay horarios de ingreso' : 'No hay asistencias registradas' }}
+            </span>
             <span class="body-medium outline-text">
-              Cuando se registren asistencias para esta fecha, aparecerá aquí el resumen por hora.
+              {{ details.payload.value.registeredTotal
+                ? 'No encontramos horas de ingreso para esta fecha.'
+                : 'Cuando se registren asistencias para esta fecha, aparecerá aquí el resumen por hora.' }}
             </span>
           </div>
         </section>
@@ -857,14 +1024,36 @@ function handleMobileAction(action, event) {
           v-else
           :id="`attendance-detail-panel-${activeDetailSection}`"
           class="content-box border-radius-32 attendance-detail-body attendance-section-body"
-          :class="details.payload.value.total
+          :class="sectionAttendanceRows.length
             ? 'background outline-light-1'
             : 'light-color attendance-section-body-empty'"
           role="tabpanel"
           :aria-labelledby="`attendance-tab-${activeDetailSection}`"
           aria-live="polite"
         >
-          <template v-if="details.payload.value.total">
+          <div v-if="attendanceSectionsError" class="simple-container align-center justify-center grow-1" role="alert">
+            <span class="body-medium outline-text">{{ attendanceSectionsError }}</span>
+          </div>
+          <div v-else-if="attendanceDetailLoading" class="attendance-section-skeleton" role="status" aria-label="Cargando registros del salón">
+            <div class="attendance-section-skeleton-kpis" aria-hidden="true">
+              <span v-for="index in 3" :key="`kpi-${index}`" class="content-box light-color">
+                <span class="attendance-skeleton-block animation-loading-1" style="width: 76px; height: 14px; border-radius: 7px"></span>
+                <span class="attendance-skeleton-block animation-loading-1" style="width: 40px; height: 24px; border-radius: 8px"></span>
+              </span>
+            </div>
+            <div class="attendance-section-skeleton-table" aria-hidden="true">
+              <div class="attendance-section-skeleton-row">
+                <span v-for="index in 4" :key="`head-${index}`" class="attendance-skeleton-block animation-loading-1" style="width: 76%; height: 13px; border-radius: 7px"></span>
+              </div>
+              <div v-for="row in 8" :key="`row-${row}`" class="attendance-section-skeleton-row">
+                <span v-for="column in 4" :key="`${row}-${column}`" class="attendance-skeleton-block animation-loading-1" :style="{ width: column === 3 ? '56px' : `${48 + ((row + column) % 4) * 12}px`, height: '14px', borderRadius: '7px' }"></span>
+              </div>
+            </div>
+          </div>
+          <div v-else-if="attendanceDetailError" class="simple-container align-center justify-center grow-1" role="alert">
+            <span class="body-medium outline-text">{{ attendanceDetailError }}</span>
+          </div>
+          <template v-else-if="sectionAttendanceRows.length">
             <div class="simple-container gap-8 flex-wrap attendance-section-kpis">
               <div class="content-box width-auto basis-small grow-1 gap-0 light-color gap-4">
                 <span class="body-large outline-text line-height-1">Presentes</span>
@@ -936,7 +1125,7 @@ function handleMobileAction(action, event) {
     window-class="slim"
     content-class="simple-container direction-column gap-24"
     content-data-v="28392b8b"
-    @close="finishDeleteAttendance"
+    @close="removeAttendance.hide"
   >
     <template #default="{ close }">
       <div data-v-28392b8b class="simple-container direction-column gap-16">
@@ -958,10 +1147,11 @@ function handleMobileAction(action, event) {
         <button
           type="button"
           class="style-7 rounded flex-0-1 justify-center danger-true error-container error-text with-icon-left"
+          :disabled="attendanceDeleteLoading"
           @click="confirmDeleteAttendance(close)"
         >
-          <md-icon class="filled dynamic" aria-hidden="true">delete</md-icon>
-          Eliminar
+          <md-icon v-if="!attendanceDeleteLoading" class="filled dynamic" aria-hidden="true">delete</md-icon>
+          <span>{{ attendanceDeleteLoading ? 'Eliminando…' : 'Eliminar' }}</span>
         </button>
       </div>
     </template>
@@ -998,6 +1188,10 @@ function handleMobileAction(action, event) {
   gap: 12px;
 }
 
+.attendance-mobile-menu {
+  flex: 0 0 auto;
+}
+
 .attendance-toolbar {
   display: flex;
   flex: 0 1 auto;
@@ -1009,12 +1203,48 @@ function handleMobileAction(action, event) {
   margin-left: auto;
 }
 
-.attendance-empty-state {
-  display: grid;
-  min-height: 112px;
-  place-items: center;
-  padding: 16px;
+.attendance-grid-loading {
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
+
+.attendance-grid-loading .attendance-card-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.attendance-skeleton-block {
+  display: block;
+  flex: 0 0 auto;
+  background: var(--md-sys-color-surface-container);
+}
+
+.attendance-list-empty {
+  display: flex;
+  grid-column: 1 / -1;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: min(48vh, 420px);
+  box-sizing: border-box;
+  padding: 32px 20px;
   text-align: center;
+}
+
+.attendance-empty-placeholder {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: min(48vh, 420px);
+  gap: 12px;
+  text-align: center;
+}
+
+.attendance-empty-placeholder > span {
+  max-width: 100%;
+  text-wrap: balance;
 }
 
 .attendance-list {
@@ -1143,7 +1373,7 @@ function handleMobileAction(action, event) {
   justify-content: flex-start;
   flex-direction: column;
   gap: 12px;
-  min-height: 340px;
+  min-height: 440px;
   padding: 24px;
   text-align: left;
 }
@@ -1163,11 +1393,37 @@ function handleMobileAction(action, event) {
 
 .attendance-hourly-chart {
   position: relative;
-  flex: 0 0 320px;
+  flex: 0 0 380px;
   width: 100%;
-  height: 320px;
+  height: 380px;
   min-width: 0;
   margin-top: auto;
+}
+
+.attendance-detail-chart-skeleton {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
+.attendance-hourly-chart-loading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  gap: clamp(3px, 1.2vw, 12px);
+  box-sizing: border-box;
+  padding: 12px 10px 40px;
+}
+
+.attendance-chart-loading-bar {
+  flex: 1 1 0;
+  min-width: 4px;
+  max-width: 36px;
+  min-height: 12px;
+  border-radius: 999px;
+  background: var(--md-sys-color-surface-container);
 }
 
 .attendance-hourly-svg {
@@ -1252,6 +1508,53 @@ function handleMobileAction(action, event) {
   text-align: center;
 }
 
+.attendance-section-skeleton {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  min-width: 0;
+}
+
+.attendance-section-skeleton-kpis {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.attendance-section-skeleton-kpis > span {
+  display: flex;
+  min-height: 96px;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px;
+  border-radius: 24px;
+}
+
+.attendance-section-skeleton-table {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 0 12px;
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: 20px;
+}
+
+.attendance-section-skeleton-row {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.3fr) minmax(0, 1.1fr) minmax(0, 1.4fr);
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.attendance-section-skeleton-row:last-child {
+  border-bottom: 0;
+}
+
 .attendance-section-table-wrap {
   flex: 1 1 auto;
   min-width: 0;
@@ -1310,15 +1613,46 @@ function handleMobileAction(action, event) {
 }
 
 @media (max-width: 680px) {
+  .attendance-view .app-header {
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .attendance-view .app-header > h1 {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .attendance-view .attendance-toolbar {
+    display: none;
+  }
+
+  .attendance-view :deep(.mobile-action-menu-trigger) {
+    flex: 0 0 48px;
+    width: 48px;
+    height: 48px;
+  }
+
+  .attendance-empty-placeholder {
+    min-height: clamp(260px, 48vh, 380px);
+    padding: 24px 16px;
+  }
+
+  .attendance-empty-placeholder > span {
+    font-size: clamp(16px, 4.4vw, 20px);
+    line-height: 1.3;
+  }
+
   .attendance-statistics-body {
     gap: 8px;
-    min-height: 280px;
+    min-height: 390px;
     padding: 16px;
   }
 
   .attendance-hourly-chart {
-    flex-basis: 230px;
-    height: 230px;
+    flex-basis: 340px;
+    height: 340px;
   }
 
   .attendance-hourly-svg {
@@ -1326,12 +1660,34 @@ function handleMobileAction(action, event) {
   }
 
   .attendance-hourly-time {
-    font-size: 11px;
+    font-size: 10px;
+  }
+
+  .attendance-hourly-header {
+    flex-wrap: wrap;
+  }
+
+  .attendance-hourly-total {
+    padding-top: 0;
   }
 
   .attendance-section-body {
     gap: 12px;
     padding: 16px;
+  }
+
+  .attendance-section-skeleton-kpis > span {
+    min-height: 76px;
+    padding: 10px;
+  }
+
+  .attendance-section-skeleton-table {
+    padding: 0 6px;
+  }
+
+  .attendance-section-skeleton-row {
+    gap: 4px;
+    min-height: 36px;
   }
 
   .attendance-section-table {
@@ -1398,6 +1754,16 @@ function handleMobileAction(action, event) {
 }
 
 @media (max-width: 480px) {
+  .attendance-view :deep(.mobile-action-menu-trigger) {
+    flex-basis: 44px;
+    width: 44px;
+    height: 44px;
+  }
+
+  .attendance-empty-placeholder {
+    min-height: clamp(240px, 44vh, 340px);
+  }
+
   .attendance-record {
     gap: 8px;
     padding: 10px 12px;

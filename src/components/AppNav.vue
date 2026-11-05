@@ -61,7 +61,7 @@ function finishLogoutConfirmation() {
   <nav id="appNav" class="app-nav mobile-style-1" :class="navStyle">
     <button class="nav-button first-button">
       <md-ripple aria-hidden="true"></md-ripple>
-      <img class="app-nav-logo" src="/icons/S-nav.svg?v=2" alt="" width="24" height="24" />
+      <img class="app-nav-logo" src="/icons/peruano-suizo.png" alt="" width="24" height="24" />
       <span class="nav-name app-nav-brand">Peruano Suizo</span>
       <md-icon class="dynamic" aria-hidden="true">expand_all</md-icon>
     </button>

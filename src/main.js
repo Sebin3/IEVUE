@@ -2,6 +2,7 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
+import { useAuthStore } from './stores/auth'
 
 // Mismo orden de carga que index.html:
 // iconos -> fuentes -> frontend.css (el diseño real) -> parches encima.
@@ -13,8 +14,20 @@ import 'super-beautiful-toast/style.css'
 import './assets/styles/patches.css'
 
 const app = createApp(App)
-app.use(createPinia())
+const pinia = createPinia()
+app.use(pinia)
 app.use(router)
+
+let redirectingExpiredSession = false
+window.addEventListener('ievue:session-expired', () => {
+  useAuthStore(pinia).logout()
+  if (!redirectingExpiredSession && router.currentRoute.value.name !== 'login') {
+    redirectingExpiredSession = true
+    router.replace({ name: 'login' }).finally(() => {
+      redirectingExpiredSession = false
+    })
+  }
+})
 
 // Espera a que el guard de autenticación resuelva la ruta inicial antes del
 // primer render, para no mostrar Inicio brevemente cuando corresponde Login.

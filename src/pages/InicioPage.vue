@@ -1,10 +1,11 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useModal } from '../composables/useModal'
 import { useAuthStore } from '../stores/auth'
 import ModalCreate from '../components/ModalCreate.vue'
 import SelectFlip from '../components/SelectFlip.vue'
 import { moduleAvailability } from '../config/modules'
+import { apiGetCached } from '../services/api'
 
 const create = useModal()
 const auth = useAuthStore()
@@ -38,14 +39,18 @@ const todayLabel = new Intl.DateTimeFormat('es-PE', {
   month: 'long',
 }).format(new Date()).replace(/^./, (letter) => letter.toLocaleUpperCase('es-PE'))
 
-const attendancePreview = [
-  { label: 'Lun', total: 600 },
-  { label: 'Mar', total: 400 },
-  { label: 'Mié', total: 600 },
-  { label: 'Jue', total: 500 },
-  { label: 'Vie', total: 450 },
-]
+const attendancePreview = ref([
+  { label: 'Lun', total: 0 },
+  { label: 'Mar', total: 0 },
+  { label: 'Mié', total: 0 },
+  { label: 'Jue', total: 0 },
+  { label: 'Vie', total: 0 },
+])
 const attendancePeriod = ref('week')
+const attendanceSummaryLoading = ref(true)
+const attendanceSummaryError = ref('')
+let attendanceSummaryController
+const hasAttendanceSummary = computed(() => attendancePreview.value.some(({ total }) => total > 0))
 const attendancePeriodOptions = [
   { value: 'week', label: 'Semana' },
   { value: 'month', label: 'Mes' },
@@ -65,14 +70,14 @@ const weekChart = computed(() => {
   const plotWidth = Math.min(width * 0.82, 900)
   const left = (width - plotWidth) / 2
   const plotHeight = height - top - bottom
-  const slot = plotWidth / attendancePreview.length
+  const slot = plotWidth / attendancePreview.value.length
   const maxBarHeight = plotHeight * 0.9
 
   return {
     width,
     height,
     left,
-    max: Math.max(1, ...attendancePreview.map(({ total }) => total)),
+    max: Math.max(1, ...attendancePreview.value.map(({ total }) => total)),
     scaleMax: attendanceScaleMax,
     baseline: height - bottom,
     maxBarHeight,
@@ -81,19 +86,78 @@ const weekChart = computed(() => {
   }
 })
 
-onMounted(() => {
-  if (!weeklyChartElement.value) return
+function localDateKey(date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
 
-  weeklyChartObserver = new ResizeObserver(([entry]) => {
-    weeklyChartSize.value = {
-      width: Math.max(1, entry.contentRect.width),
-      height: Math.max(220, entry.contentRect.height),
-    }
-  })
-  weeklyChartObserver.observe(weeklyChartElement.value)
+function homeAttendanceRange() {
+  const today = new Date()
+  if (attendancePeriod.value === 'month') {
+    return { start: new Date(today.getFullYear(), today.getMonth(), 1), end: today }
+  }
+  const monday = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+  const weekday = monday.getDay() || 7
+  monday.setDate(monday.getDate() - weekday + 1 - (weekday > 5 ? 7 : 0))
+  const friday = new Date(monday)
+  friday.setDate(friday.getDate() + 4)
+  return { start: monday, end: friday }
+}
+
+async function loadHomeAttendance() {
+  attendanceSummaryController?.abort()
+  const controller = new AbortController()
+  attendanceSummaryController = controller
+  attendanceSummaryLoading.value = true
+  attendanceSummaryError.value = ''
+  const { start, end } = homeAttendanceRange()
+  const labels = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie']
+
+  try {
+    const rows = await apiGetCached(
+      `/api/admin/asistencia/historial?desde=${localDateKey(start)}&hasta=${localDateKey(end)}`,
+      { signal: controller.signal, ttlMs: 30_000 },
+    )
+    if (controller.signal.aborted) return
+    const totals = [0, 0, 0, 0, 0]
+    ;(Array.isArray(rows) ? rows : []).forEach((row) => {
+      const [year, month, day] = String(row.fecha).slice(0, 10).split('-').map(Number)
+      const weekday = new Date(year, month - 1, day).getDay()
+      if (weekday >= 1 && weekday <= 5) {
+        totals[weekday - 1] += (Number(row.presentes) || 0) + (Number(row.tardanzas) || 0)
+      }
+    })
+    attendancePreview.value = labels.map((label, index) => ({ label, total: totals[index] }))
+  } catch (error) {
+    if (error.name === 'AbortError') return
+    attendancePreview.value = labels.map((label) => ({ label, total: 0 }))
+    attendanceSummaryError.value = error.message || 'No se pudo cargar el resumen de asistencias.'
+  } finally {
+    if (!controller.signal.aborted) attendanceSummaryLoading.value = false
+  }
+}
+
+watch(attendancePeriod, loadHomeAttendance)
+
+onMounted(() => {
+  if (weeklyChartElement.value && typeof ResizeObserver !== 'undefined') {
+    weeklyChartObserver = new ResizeObserver(([entry]) => {
+      weeklyChartSize.value = {
+        width: Math.max(1, entry.contentRect.width),
+        height: Math.max(220, entry.contentRect.height),
+      }
+    })
+    weeklyChartObserver.observe(weeklyChartElement.value)
+  }
+  loadHomeAttendance()
 })
 
-onBeforeUnmount(() => weeklyChartObserver?.disconnect())
+onBeforeUnmount(() => {
+  weeklyChartObserver?.disconnect()
+  attendanceSummaryController?.abort()
+})
 
 function weekBarX(index) {
   const chart = weekChart.value
@@ -291,8 +355,8 @@ function hideWeeklyTooltip() {
           <div
             ref="weeklyChartElement"
             class="weekly-attendance-chart simple-container direction-column grow-1"
-            role="img"
-            aria-label="Resumen del total de asistencias de lunes a viernes."
+            role="group"
+            :aria-label="`Resumen de presentes y tardanzas de lunes a viernes para el periodo ${attendancePeriod === 'week' ? 'semanal' : 'mensual'}.`"
           >
             <svg
               class="weekly-attendance-svg"
@@ -323,6 +387,18 @@ function hideWeeklyTooltip() {
                 </text>
               </g>
             </svg>
+            <div v-if="attendanceSummaryLoading" class="weekly-attendance-state body-medium outline-text" role="status">
+              Cargando resumen…
+            </div>
+            <div v-else-if="attendanceSummaryError" class="weekly-attendance-state body-medium outline-text" role="alert">
+              <span>{{ attendanceSummaryError }}</span>
+              <button type="button" class="style-7 rounded background on-background-text" @click="loadHomeAttendance">
+                Reintentar
+              </button>
+            </div>
+            <div v-else-if="!hasAttendanceSummary" class="weekly-attendance-state body-medium outline-text" role="status">
+              Sin ingresos registrados en este periodo
+            </div>
             <div
               v-if="weeklyTooltip"
               class="weekly-attendance-tooltip"
@@ -449,6 +525,24 @@ function hideWeeklyTooltip() {
   height: 100%;
   box-sizing: border-box;
   overflow: visible;
+}
+
+.weekly-attendance-state {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  text-align: center;
+  pointer-events: none;
+}
+
+.weekly-attendance-state button {
+  pointer-events: auto;
 }
 
 .weekly-day-label {

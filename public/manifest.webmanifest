@@ -1,7 +1,7 @@
 {
-  "name": "Laney",
-  "short_name": "Laney",
-  "description": "A simple, modern school management platform",
+  "name": "Sistema de Gestión Escolar de la I.E. Peruano Suizo",
+  "short_name": "Peruano Suizo",
+  "description": "Sistema de gestión escolar de la Institución Educativa Peruano Suizo.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -13,13 +13,13 @@
       "src": "/icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ]
 }

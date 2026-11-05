@@ -27,3 +27,14 @@
 - [ ] **T005:** Definir la estructura de registros de asistencia.
 - [ ] **T006:** Diseñar el flujo de marcación y consulta.
 - [ ] **T007:** Definir permisos, reportes y conexión con datos reales.
+
+- [x] **T023:** Conectar el historial a `GET /api/admin/asistencia/historial` y a las secciones de `GET /api/secciones`; eliminar muestras de fechas, salones, estados y horarios; conservar fechas laborables y paginación de seis.
+- [x] **T024:** Conectar detalle diario, gráfico por minuto y CSV a `GET /api/admin/asistencia/fecha`; conectar eliminación confirmada a `POST /api/asistencia/eliminar-batch`.
+- [x] **T025:** Conectar el resumen de Inicio al endpoint agregado; Semana/Mes consulta rangos y agrega presentes más tardanzas, excluyendo ausentes.
+- [x] **T026:** Hacer el chart diario responsivo con ancho medido y mayor altura en móvil; mantener el eje horario y no deformar sus etiquetas.
+- [x] **T027:** Manejar expiración del JWT y respuestas HTTP 401 en el guard y en un manejador central para volver a Login sin renderizar Inicio.
+- [ ] **T028:** Validación visual en Chromium desktop/móvil pendiente porque el permiso guardado del navegador bloqueó el origen localhost; `npm run build` pasó.
+- [ ] **T029:** Confirmar en despliegue que existe la función Supabase `resumen_asistencias_por_rango`; si no está, reemplazar el fallback que lee filas crudas por una agregación SQL en backend.
+- [x] **T030:** Reemplazar la franja de carga por skeletons `animation-loading-1`; cuando no hay datos, reutilizar exactamente el placeholder preexistente de `PlaceholderPage.vue` (`content-box light-color`, icono `nest_clock_farsight_analog` y texto “No se encontraron Asistencias”). Usar skeletons para carga de chart/tabla dentro del detalle.
+- [x] **T031:** Afinar el responsive de Asistencias: alinear título y menú de tres puntos en una fila sin cambiar la tipografía compartida, ocultar la toolbar vacía en móvil, reducir el botón a 48/44px y asegurar tamaño/ancho útiles del placeholder vacío. Build validado; revisión visual en navegador pendiente por el bloqueo de acceso previo al origen local.
+- [x] **T032:** Reenviar el evento de origen desde las acciones del menú móvil de Asistencias a `useModal.show` para que Filtros y Buscar usen el mismo anclaje FLIP que las demás vistas. Build validado; revisión visual en navegador pendiente por el bloqueo de acceso previo al origen local.

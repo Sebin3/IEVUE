@@ -5,9 +5,9 @@ const directoryCache = new Map()
 const DIRECTORY_CACHE_TTL_MS = 2 * 60 * 1000
 const DIRECTORY_CACHE_MAX_ENTRIES = 48
 
-function rememberDirectoryResponse(key, data) {
+function rememberDirectoryResponse(key, data, ttlMs = DIRECTORY_CACHE_TTL_MS) {
   directoryCache.delete(key)
-  directoryCache.set(key, { data, expiresAt: Date.now() + DIRECTORY_CACHE_TTL_MS })
+  directoryCache.set(key, { data, expiresAt: Date.now() + Math.max(0, ttlMs) })
 
   while (directoryCache.size > DIRECTORY_CACHE_MAX_ENTRIES) {
     directoryCache.delete(directoryCache.keys().next().value)
@@ -28,9 +28,12 @@ export function clearApiGetCache() {
   directoryCache.clear()
 }
 
-async function apiRequest(path, { method = 'GET', body, signal } = {}) {
+async function apiRequest(path, { method = 'GET', body, signal, includeEnvelope = false } = {}) {
   const token = localStorage.getItem('auth_token')
-  if (!token) throw new Error('Tu sesión venció. Inicia sesión nuevamente.')
+  if (!token) {
+    window.dispatchEvent(new Event('ievue:session-expired'))
+    throw new Error('Tu sesión venció. Inicia sesión nuevamente.')
+  }
 
   let response
   try {
@@ -52,19 +55,30 @@ async function apiRequest(path, { method = 'GET', body, signal } = {}) {
   }
 
   const payload = await response.json().catch(() => null)
-  if (response.status === 401) throw new Error('Tu sesión venció. Inicia sesión nuevamente.')
-  if (response.status === 403) throw new Error('No tienes permiso para modificar estos datos.')
+  if (response.status === 401) {
+    window.dispatchEvent(new Event('ievue:session-expired'))
+    throw new Error('Tu sesión venció. Inicia sesión nuevamente.')
+  }
+  if (response.status === 403) {
+    throw new Error(payload?.message || (method === 'GET'
+      ? 'No tienes permiso para consultar estos datos.'
+      : 'No tienes permiso para modificar estos datos.'))
+  }
   if (!response.ok || payload?.success !== true) {
     throw new Error(payload?.message || 'No se pudo completar la operación.')
   }
 
   if (method !== 'GET') clearApiGetCache()
 
-  return payload.data
+  return includeEnvelope ? payload : payload.data
 }
 
 export function apiGet(path, options = {}) {
   return apiRequest(path, options)
+}
+
+export function apiGetEnvelope(path, options = {}) {
+  return apiRequest(path, { ...options, includeEnvelope: true })
 }
 
 export async function apiGetCached(path, options = {}) {
@@ -78,7 +92,7 @@ export async function apiGetCached(path, options = {}) {
   if (cached) directoryCache.delete(key)
 
   const data = await apiRequest(path, options)
-  if (!options.signal?.aborted) rememberDirectoryResponse(key, data)
+  if (!options.signal?.aborted) rememberDirectoryResponse(key, data, options.ttlMs)
   return data
 }
 

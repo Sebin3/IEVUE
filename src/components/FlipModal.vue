@@ -1225,6 +1225,7 @@ function openAnimation() {
     const isMobile = window.innerWidth < 680
     const hasIncreased = G.classList.contains('increased')
     const isLeftPlacement = props.placement === 'left'
+    const isBottomLeftPlacement = props.placement === 'bottom-left'
     const isMobileActionsPlacement = props.placement === 'mobile-actions'
     const isAgentPanelPlacement = props.placement === 'agent-panel'
     const isAgentChatPlacement = props.placement === 'agent-chat'
@@ -1260,7 +1261,9 @@ function openAnimation() {
       const centerY = bounds.top + (bounds.bottom - bounds.top) / 2
       const nextControl = isLeftPlacement ? z.nextElementSibling : null
       const nextControlBounds = nextControl?.getBoundingClientRect()
-      const left = isAgentPanelPlacement && agentPanelBounds
+      const left = isBottomLeftPlacement
+        ? Math.max(padding, Math.min(bounds.left, window.innerWidth - wBounds.width - padding))
+        : isAgentPanelPlacement && agentPanelBounds
         ? Math.max(
             padding,
             Math.min(agentPanelBounds.left, window.innerWidth - wBounds.width - padding),
@@ -1288,7 +1291,9 @@ function openAnimation() {
               padding,
               Math.min(centerX - wBounds.width / 2, window.innerWidth - wBounds.width - padding),
             )
-      const top = isAgentPanelPlacement && agentPanelBounds
+      const top = isBottomLeftPlacement
+        ? Math.max(padding, Math.min(bounds.bottom - wBounds.height, window.innerHeight - wBounds.height - padding))
+        : isAgentPanelPlacement && agentPanelBounds
         ? Math.max(
             padding,
             Math.min(agentPanelBounds.top, window.innerHeight - wBounds.height - padding),

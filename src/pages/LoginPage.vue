@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { toast } from 'super-beautiful-toast'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -10,11 +11,9 @@ const email = ref('')
 const password = ref('')
 const emailInvalid = ref(false)
 const passwordInvalid = ref(false)
-const error = ref('')
 const loading = ref(false)
 
 async function onSubmit() {
-  error.value = ''
   emailInvalid.value = !email.value.trim()
   passwordInvalid.value = !password.value
 
@@ -25,7 +24,7 @@ async function onSubmit() {
     await auth.login(email.value, password.value)
     router.push({ name: 'inicio' })
   } catch (e) {
-    error.value = e.message || 'No se pudo iniciar sesión'
+    toast.error(e.message || 'No se pudo iniciar sesión', { icon: null })
   } finally {
     loading.value = false
   }
@@ -37,7 +36,7 @@ async function onSubmit() {
     <div class="page-login-frame">
       <section class="page-login-form-panel">
         <div class="simple-container align-center gap-8 page-login-brand">
-          <img src="/icons/S-nav.svg?v=2" alt="" width="28" height="28" />
+          <img src="/icons/peruano-suizo.png" alt="" width="28" height="28" />
           <span class="title-medium weight-500">Peruano Suizo</span>
         </div>
 
@@ -88,16 +87,6 @@ async function onSubmit() {
             </div>
 
             <div
-              v-if="error"
-              id="loginError"
-              class="content-box error-container gap-8 align-center"
-              role="alert"
-            >
-              <md-icon class="error-text">error</md-icon>
-              <span class="body-medium error-text">{{ error }}</span>
-            </div>
-
-            <div
               class="container variant-translucent align-default"
               data-v-6c7476fc
               style="--buttons-container-gap: 0px; gap: 8px; --gradient-overflow: 16px;"
@@ -118,11 +107,7 @@ async function onSubmit() {
       </section>
 
       <aside class="page-login-visual" aria-hidden="true">
-        <div class="page-login-visual-orbit page-login-visual-orbit-one"></div>
-        <div class="page-login-visual-orbit page-login-visual-orbit-two"></div>
-        <div class="page-login-visual-mark">
-          <md-icon>school</md-icon>
-        </div>
+        <img class="page-login-campus-image" src="/images/login-campus.png" alt="" />
       </aside>
     </div>
   </main>
