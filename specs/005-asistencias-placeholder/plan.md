@@ -18,6 +18,9 @@ Los estados de carga usan `animation-loading-1` con skeletons de seis tarjetas, 
 
 Autenticación: validar `exp` del JWT durante navegación, programar expiración activa y manejar los `401` de API en un solo evento que limpia el store y navega a Login; no redirigir a Inicio durante el vencimiento.
 
+- `GET /api/asistencia/web/historial` y `GET /api/asistencia/web/fecha` para cuentas Profesor web; filtrar por las secciones ligadas a sus asignaciones. `PUT /api/asistencia/:id` permite corregir solo `presente`, `tardanza`, `falta` o `justificado`; Profesor queda limitado a sus secciones y Administrador puede actualizar cualquier registro. Eliminar queda reservado a Administrador.
+- El historial de Asistencias usa la semana laboral actual por defecto; la navegación semanal consulta un rango lunes–viernes y el modo mensual conserva búsqueda histórica. Mapear solo fechas presentes en el resumen del backend para ocultar jornadas sin registros. En backend, validar las fechas en hora de Lima antes de crear sesión, escanear QR, registrar manualmente/ausentes o cerrar una sesión que produciría ausencias.
+
 ## Archivos involucrados
 
 - `src/pages/AsistenciasPage.vue`: historial, detalle, gráfico, estados de carga/error/vacío, descarga y eliminación conectados.

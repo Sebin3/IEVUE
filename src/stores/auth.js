@@ -5,6 +5,8 @@ import { clearApiGetCache } from '../services/api'
 const TOKEN_KEY = 'auth_token'
 const USERNAME_KEY = 'auth_username'
 const USER_KEY = 'auth_user'
+const WEB_LOGIN_PATH = '/api/web/members/sessions'
+const WEB_ROLES = new Set(['profesor', 'administrador', 'admin'])
 const API_BASE_URL = (
   import.meta.env.VITE_API_BASE_URL || 'https://colegiosuizo-yl5x.onrender.com'
 ).replace(/\/+$/, '')
@@ -83,6 +85,15 @@ export const useAuthStore = defineStore('auth', () => {
     return true
   }
 
+  function hasWebSession() {
+    if (!hasValidSession() || user.value?.access_context !== 'web') return false
+    return WEB_ROLES.has(String(user.value?.rol || '').trim().toLocaleLowerCase('es-PE'))
+  }
+
+  function isWebProfessor() {
+    return hasWebSession() && String(user.value?.rol || '').trim().toLocaleLowerCase('es-PE') === 'profesor'
+  }
+
   scheduleExpiryCheck()
 
   async function login(emailInput, password) {
@@ -93,7 +104,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     let response
     try {
-      response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+      response = await fetch(`${API_BASE_URL}${WEB_LOGIN_PATH}`, {
         method: 'POST',
         headers: {
           Accept: 'application/json',
@@ -110,6 +121,9 @@ export const useAuthStore = defineStore('auth', () => {
     const payload = await response.json().catch(() => null)
     if (!response.ok || payload?.success !== true) {
       if (response.status === 401) throw new Error('Correo o contraseña incorrectos.')
+      if (response.status === 403) {
+        throw new Error(payload?.message || 'Esta cuenta no tiene acceso al panel web.')
+      }
       if (response.status === 429) {
         throw new Error('Demasiados intentos. Espera unos minutos e inténtalo nuevamente.')
       }
@@ -121,6 +135,10 @@ export const useAuthStore = defineStore('auth', () => {
     const profile = payload?.data?.user
     if (typeof accessToken !== 'string' || !accessToken || !profile || typeof profile !== 'object') {
       throw new Error('El servidor devolvió una respuesta de inicio de sesión inválida.')
+    }
+    const role = String(profile.rol || '').trim().toLocaleLowerCase('es-PE')
+    if (profile.access_context !== 'web' || !WEB_ROLES.has(role)) {
+      throw new Error('Esta cuenta no tiene acceso al panel web.')
     }
 
     const displayName = String(profile.nombres || profile.nombre_completo || '').trim()
@@ -145,5 +163,5 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem(USER_KEY)
   }
 
-  return { token, user, username, isAuthenticated, hasValidSession, login, logout }
+  return { token, user, username, isAuthenticated, hasValidSession, hasWebSession, isWebProfessor, login, logout }
 })

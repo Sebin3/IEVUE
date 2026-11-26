@@ -9,6 +9,7 @@ const props = defineProps({
   scope: { type: String, default: 'movimientos' },
   modelValue: { type: String, default: '' },
   attendanceSort: { type: String, default: 'date-desc' },
+  attendancePeriod: { type: String, default: 'week' },
   attendanceMonth: { type: String, default: '' },
   attendanceYear: { type: String, default: '' },
   studentSalonOptions: { type: Array, default: () => [] },
@@ -18,6 +19,7 @@ const emit = defineEmits([
   'close',
   'update:modelValue',
   'update:attendance-sort',
+  'update:attendance-period',
   'update:attendance-month',
   'update:attendance-year',
 ])
@@ -104,6 +106,10 @@ const attendanceSortFilter = computed({
   get: () => props.attendanceSort,
   set: (value) => emit('update:attendance-sort', value),
 })
+const attendancePeriodFilter = computed({
+  get: () => props.attendancePeriod,
+  set: (value) => emit('update:attendance-period', value),
+})
 const attendanceMonthFilter = computed({
   get: () => props.attendanceMonth,
   set: (value) => emit('update:attendance-month', value),
@@ -120,6 +126,10 @@ const attendanceSortOptions = [
   { value: 'total-desc', label: 'Jornadas con más asistencias' },
   { value: 'date-desc', label: 'Jornadas más recientes' },
   { value: 'date-asc', label: 'Jornadas más antiguas' },
+]
+const attendancePeriodOptions = [
+  { value: 'week', label: 'Semana' },
+  { value: 'month', label: 'Mes' },
 ]
 </script>
 
@@ -149,6 +159,16 @@ const attendanceSortOptions = [
         <div v-if="isAttendance" class="simple-container direction-column gap-16">
           <div class="simple-container direction-column gap-8">
             <span class="label-large outline-text">Periodo</span>
+            <SelectFlip
+              v-model="attendancePeriodFilter"
+              name="attendance-period-select"
+              scope="3020d431"
+              :options="attendancePeriodOptions"
+              :width="312"
+            />
+          </div>
+          <div v-if="attendancePeriodFilter === 'month'" class="simple-container direction-column gap-8">
+            <span class="label-large outline-text">Mes y año</span>
             <div class="simple-container gap-8">
               <SelectFlip
                 v-model="attendanceMonthFilter"

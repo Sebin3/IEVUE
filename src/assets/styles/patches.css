@@ -926,6 +926,18 @@
     background: var(--md-sys-color-background);
 }
 
+/* El editor de roles contiene varios permisos: limitarlo para que el formulario
+   desplace su contenido y no desborde la ventana ni cubra casi toda la pantalla. */
+.modal-window.settings-role-editor-window {
+    width: min(640px, calc(100vw - 48px)) !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-width: 640px !important;
+    max-height: calc(100dvh - 48px) !important;
+    height: auto !important;
+    overflow: hidden !important;
+}
+
 @media only screen and (min-width: 681px) {
     .modal-window.attendance-detail-window[data-v-c84aa51e] {
         width: min(1040px, calc(100vw - 48px)) !important;
@@ -1320,6 +1332,13 @@
 }
 
 @media (max-width: 680px) {
+    .modal-window.settings-role-editor-window {
+        width: calc(100vw - 24px) !important;
+        max-width: 560px !important;
+        max-height: calc(100dvh - 24px) !important;
+        border-radius: 32px !important;
+    }
+
     .modal-backdrop:has(.settings-window) {
         padding: 0 !important;
     }

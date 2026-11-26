@@ -64,10 +64,13 @@ const router = createRouter({
 // vue-router 5 depreco el callback `next()`: el guard devuelve el destino.
 router.beforeEach((to) => {
   const auth = useAuthStore()
-  const hasValidSession = auth.hasValidSession()
-  if (to.meta.requiresAuth && !hasValidSession) return { name: 'login' }
+  const hasWebSession = auth.hasWebSession()
+  if (to.meta.requiresAuth && !hasWebSession) return { name: 'login' }
+  if (hasWebSession && auth.isWebProfessor() && to.name !== 'asistencias' && to.name !== 'login') {
+    return { name: 'asistencias' }
+  }
   if (to.meta.module && !moduleAvailability[to.meta.module]) return { name: 'inicio' }
-  if (to.name === 'login' && hasValidSession) return { name: 'inicio' }
+  if (to.name === 'login' && hasWebSession) return { name: auth.isWebProfessor() ? 'asistencias' : 'inicio' }
 })
 
 export default router

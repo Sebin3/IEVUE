@@ -31,6 +31,8 @@ La ruta `/asistencias` permite consultar jornadas escolares reales de lunes a vi
 - **RF-AS-23:** El gráfico por minuto se adapta al ancho real de su panel y aumenta su espacio vertical en móvil sin deformar el eje horario.
 - **RF-AS-24:** Mientras se consulta el historial, mostrar skeletons animados del mismo tamaño que las tarjetas; si el rango no tiene registros, mostrar el contenedor vacío amplio y centrado, sin una franja con texto de carga.
 
+- **RF-AS-25:** Profesor y Administrador pueden corregir el estado de un registro desde la fila del alumno en el detalle diario: Presente, Tardanza, Ausente o Justificado. Profesor consulta y corrige únicamente las secciones que tiene asignadas; solo Administrador puede eliminar registros. Guardar mediante `PUT /api/asistencia/:id`, validar rol, alcance y estado en backend, y actualizar conteos e historial. Justificado cuenta como ausencia en el resumen de jornadas.
+- **RF-AS-26:** El historial abre en la semana laboral actual (lunes a viernes), permite navegar a semanas anteriores y alternar a consulta mensual. Solo mostrar días con registros reales; no generar tarjetas vacías. Sábado y domingo no son días válidos para crear sesiones, registrar asistencia QR/manual, registrar ausentes o cerrar una sesión que genere ausencias. Validar la regla en frontend para el flujo de consulta y en backend para cada operación de escritura, usando fecha de Lima.
 ## Fuera de alcance
 
-Lectura en vivo del escáner QR, nuevos informes o exportaciones agregadas, filtros temporales dentro de Estadística y edición de registros individuales.
+Lectura en vivo del escáner QR, nuevos informes o exportaciones agregadas y filtros temporales dentro de Estadística.

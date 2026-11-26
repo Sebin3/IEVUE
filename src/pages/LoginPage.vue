@@ -22,7 +22,7 @@ async function onSubmit() {
   loading.value = true
   try {
     await auth.login(email.value, password.value)
-    router.push({ name: 'inicio' })
+    router.push({ name: auth.isWebProfessor() ? 'asistencias' : 'inicio' })
   } catch (e) {
     toast.error(e.message || 'No se pudo iniciar sesión', { icon: null })
   } finally {

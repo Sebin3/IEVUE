@@ -1,4 +1,5 @@
 <script setup>
+import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useNavStyle } from '../composables/useNavStyle'
 import { useModal } from '../composables/useModal'
@@ -25,6 +26,10 @@ const navItems = [
   { page: 'asistencias', icon: 'nest_clock_farsight_analog', label: 'Asistencias', desktopOnly: true },
   ...(moduleAvailability.calendario ? [{ page: 'calendario', icon: 'calendar_view_month', label: 'Calendario', desktopOnly: true }] : []),
 ]
+const isProfessor = computed(() => auth.isWebProfessor())
+const visibleNavItems = computed(() => isProfessor.value
+  ? [{ page: 'asistencias', icon: 'nest_clock_farsight_analog', label: 'Asistencias' }]
+  : navItems)
 
 const options = useModal()
 const createTramite = useModal()
@@ -68,10 +73,10 @@ function finishLogoutConfirmation() {
 
     <div class="nav-buttons-container">
       <button
-        v-for="item in navItems"
+        v-for="item in visibleNavItems"
         :key="item.page"
         class="nav-button"
-        :class="{ 'hide-on-mobile': item.desktopOnly }"
+        :class="{ 'hide-on-mobile': item.desktopOnly && !isProfessor }"
         :data-page="item.page"
         :active="route.name === item.page ? 'true' : null"
         @click="go(item.page)"
@@ -82,7 +87,7 @@ function finishLogoutConfirmation() {
       </button>
     </div>
 
-    <div class="nav-option-buttons" role="group" aria-labelledby="navQuickActionsLabel">
+    <div v-if="!isProfessor" class="nav-option-buttons" role="group" aria-labelledby="navQuickActionsLabel">
       <span id="navQuickActionsLabel" class="nav-option-label outline-variant-text">Opciones</span>
       <button
         class="nav-button"

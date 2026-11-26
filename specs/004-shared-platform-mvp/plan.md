@@ -34,6 +34,9 @@
 - La capa de botones toma del frontend de referencia solo las reglas visuales de `style-7`, `variant-glass` y `variant-bright`; no importa sus estilos de navegación, modales ni formularios.
 - El detalle de Asistencias abre desde la tarjeta con `useModal` y pasa el registro como payload a un `FlipModal` centrado. Reutiliza `increased`, `semi-slim` y `border-radius-40`, con la tarjeta como origen; muestra fecha y total, y no fabrica alumnos ni estados porque el prototipo solo contiene fecha y cantidad. En móvil conserva la pantalla completa que `FlipModal` aplica a modales `increased`.
 
+El login web consume `POST /api/web/members/sessions`, separado del login compartido de la app. El backend permite cuentas activas Profesor/Administrador con membresía web y emite contexto `web`; el guard del frontend exige ese contexto y rol antes de montar rutas privadas. Profesor entra directamente a Asistencias y no ve las vistas administrativas.
+- El editor de Roles debe usar `<md-checkbox>` y las variables de Material Web ya incluidas; su `FlipModal` tendrá límites de ancho/alto responsive y scroll interno para que la lista de permisos no agrande la ventana fuera del viewport.
+
 ## Validación
 
 Comprobar todas las rutas con cada tema, en tamaños de escritorio y móvil. Revisar apertura y cierre de modales, controles de fecha y hora, navegación y metadatos de instalación. Ejecutar `npm run build`.

@@ -7,6 +7,7 @@
 import FlipModal from './FlipModal.vue'
 import { useStore } from '../stores/data'
 import { computed } from 'vue'
+import { serializeCsvRows } from '../utils/csv'
 
 const props = defineProps({
   origin: { type: Object, default: null },
@@ -39,18 +40,11 @@ const STUDENT_COLUMNS = [
   ['Estado', (student) => student.estado || ''],
 ]
 
-function cell(value) {
-  return `"${String(value).replace(/"/g, '""')}"`
-}
-
 function exportCsv(close) {
   const columns = isStudents.value ? STUDENT_COLUMNS : COLUMNS
   const items = isStudents.value ? filteredEstudiantes.value : filteredTramites.value
-  const rows = [
-    columns.map(([header]) => cell(header)).join(','),
-    ...items.map((item) => columns.map(([, get]) => cell(get(item))).join(',')),
-  ]
-  const blob = new Blob(['﻿' + rows.join('\r\n')], { type: 'text/csv;charset=utf-8;' })
+  const rows = [columns.map(([header]) => header), ...items.map((item) => columns.map(([, get]) => get(item)))]
+  const blob = new Blob(['﻿' + serializeCsvRows(rows)], { type: 'text/csv;charset=utf-8;' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url

@@ -240,7 +240,7 @@ onMounted(loadRoles)
       v-if="roleEditor.open.value"
       :origin="roleEditor.origin.value"
       placement="center"
-      window-class="semi-slim h-auto padding-16 border-radius-40"
+      window-class="semi-slim h-auto padding-16 border-radius-40 settings-role-editor-window"
       content-class="simple-container direction-column gap-16 grow-1"
       close-strategy="container-only"
       @close="closeEditor"
@@ -266,7 +266,12 @@ onMounted(loadRoles)
               <input v-model="roleDescription" class="style-2" type="text" maxlength="240" autocomplete="off" />
             </div>
             <label v-if="isAdministrator && editor !== 'create'" class="settings-role-active body-medium">
-              <input v-model="roleActive" type="checkbox" />
+              <md-checkbox
+                aria-label="Rol activo"
+                touch-target="none"
+                :checked="roleActive"
+                @change="roleActive = $event.target.checked"
+              ></md-checkbox>
               <span>Rol activo</span>
             </label>
           </div>
@@ -275,7 +280,12 @@ onMounted(loadRoles)
             <section v-for="group in permissionGroups" :key="group.label" class="settings-permission-group">
               <span class="title-small weight-500">{{ group.label }}</span>
               <label v-for="item in group.items" :key="item.key" class="settings-permission-item body-medium">
-                <input :checked="selectedPermissions.includes(item.key)" type="checkbox" @change="togglePermission(item.key)" />
+                <md-checkbox
+                  :aria-label="item.label"
+                  touch-target="none"
+                  :checked="selectedPermissions.includes(item.key)"
+                  @change="togglePermission(item.key)"
+                ></md-checkbox>
                 <span>{{ item.label }}</span>
               </label>
             </section>
@@ -330,17 +340,18 @@ onMounted(loadRoles)
 .settings-system-chip { border: 1px solid var(--md-sys-color-outline-variant); border-radius: 999px; padding: 3px 8px; }
 .settings-management-empty { display: flex; flex: 1 1 auto; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--md-sys-color-outline); text-align: center; }
 .settings-management-empty md-icon { --md-icon-size: 32px; }
-.settings-role-editor-form { flex: 1 1 auto; min-height: 0; max-height: 70vh; overflow-y: auto; padding-right: 4px; }
+.settings-role-editor-form { flex: 1 1 auto; min-height: 0; max-height: min(62dvh, 560px); overflow-y: auto; overscroll-behavior: contain; padding-right: 4px; }
 .settings-role-fields { display: flex; flex-direction: column; gap: 12px; }
 .settings-role-field, .settings-role-field > input { width: 100%; }
 .settings-role-active, .settings-permission-item { display: flex; align-items: center; gap: 10px; min-height: 36px; }
-.settings-role-active input, .settings-permission-item input { width: 18px; height: 18px; accent-color: var(--md-sys-color-primary); }
+.settings-role-active md-checkbox, .settings-permission-item md-checkbox { flex: 0 0 18px; --md-checkbox-container-size: 18px; --md-checkbox-icon-size: 18px; }
 .settings-permission-groups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .settings-permission-group { display: flex; flex-direction: column; gap: 4px; min-width: 0; border: 1px solid var(--md-sys-color-outline-variant); border-radius: 24px; padding: 12px; }
 .settings-permission-group > .title-small { padding: 0 4px 4px; }
 .settings-skeleton-card { min-height: 96px; border-radius: 32px; background: var(--md-sys-color-surface-container-low); }
 @media (max-width: 680px) {
   .settings-role-card { align-items: flex-start; padding: 12px; }
+  .settings-role-editor-form { max-height: min(58dvh, 520px); }
   .settings-permission-groups { grid-template-columns: 1fr; }
 }
 </style>

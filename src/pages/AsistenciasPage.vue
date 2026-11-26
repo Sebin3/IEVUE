@@ -7,18 +7,25 @@ import ModalSearch from '../components/ModalSearch.vue'
 import ModalFilters from '../components/ModalFilters.vue'
 import MobileActionMenu from '../components/MobileActionMenu.vue'
 import PaginationControls from '../components/PaginationControls.vue'
-import { apiGet, apiGetCached, apiPost } from '../services/api'
+import SelectFlip from '../components/SelectFlip.vue'
+import { apiGet, apiGetCached, apiPost, apiPut } from '../services/api'
+import { useAuthStore } from '../stores/auth'
 import { toast } from 'super-beautiful-toast'
+import { serializeCsvRows } from '../utils/csv'
 
 const viewMode = ref('grid')
 const searchQuery = ref('')
 const attendanceSort = ref('date-desc')
+const attendancePeriod = ref('week')
+const attendanceWeekOffset = ref(0)
 const attendanceMonth = ref('')
 const attendanceYear = ref('')
 const search = useModal()
 const filters = useModal()
 const details = useModal()
 const removeAttendance = useModal()
+const editAttendance = useModal()
+const auth = useAuthStore()
 const attendanceRecords = ref([])
 const attendanceSections = ref([])
 const attendanceSectionsError = ref('')
@@ -28,6 +35,9 @@ const attendanceLoadError = ref('')
 const attendanceDetailLoading = ref(false)
 const attendanceDetailError = ref('')
 const attendanceDeleteLoading = ref(false)
+const attendanceEditLoading = ref(false)
+const attendanceEditError = ref('')
+const attendanceEditState = ref('')
 const isMobileDetailNav = ref(false)
 const activeDetailSection = ref('statistics')
 const selectedAttendancePointIndex = ref(null)
@@ -40,6 +50,18 @@ let attendanceDetailMediaQuery
 let attendanceDetailController
 let attendanceHistoryController
 let attendanceChartObserver
+
+const canEditAttendance = computed(() => ['profesor', 'administrador', 'admin'].includes(
+  String(auth.user?.rol || '').trim().toLocaleLowerCase('es-PE'),
+))
+const isProfessor = computed(() => auth.isWebProfessor())
+const canDeleteAttendance = computed(() => !isProfessor.value && canEditAttendance.value)
+const attendanceStateOptions = [
+  { value: 'presente', label: 'Presente' },
+  { value: 'tardanza', label: 'Tardanza' },
+  { value: 'falta', label: 'Ausente' },
+  { value: 'justificado', label: 'Justificado' },
+]
 
 function toLocalDateKey(date) {
   const year = date.getFullYear()
@@ -159,7 +181,7 @@ const attendanceChartGeometry = computed(() => {
   const plotHeight = plot.bottom - plot.top
   const countsByMinute = new Map()
   rows.forEach((row) => {
-    if (row.estado === 'Ausente') return
+    if (row.estado === 'Ausente' || row.estado === 'Justificado') return
     const minute = attendanceMinuteOfDay(row.horaRaw)
     if (minute === null || minute < 7 * 60 || minute > 16 * 60) return
     countsByMinute.set(minute, (countsByMinute.get(minute) || 0) + 1)
@@ -222,7 +244,7 @@ const sectionAttendanceRows = computed(() => (
 const sectionAttendanceSummary = computed(() => sectionAttendanceRows.value.reduce((counts, student) => {
   if (student.estado === 'Presente') counts.present += 1
   else if (student.estado === 'Tardanza') counts.late += 1
-  else if (student.estado === 'Ausente') counts.absent += 1
+  else if (student.estado === 'Ausente' || student.estado === 'Justificado') counts.absent += 1
   return counts
 }, { present: 0, late: 0, absent: 0 }))
 const ATTENDANCE_SECTION_PAGE_SIZE = 10
@@ -271,6 +293,18 @@ attendanceYear.value = String(today.getFullYear())
 
 function attendanceRange() {
   const now = new Date()
+  if (attendancePeriod.value === 'week') {
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const daysSinceMonday = (start.getDay() + 6) % 7
+    start.setDate(start.getDate() - daysSinceMonday - attendanceWeekOffset.value * 7)
+    const end = new Date(start)
+    end.setDate(end.getDate() + 4)
+    if (attendanceWeekOffset.value === 0 && end > now) {
+      end.setTime(new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime())
+    }
+    return { start, end }
+  }
+
   const year = Number(attendanceYear.value || now.getFullYear())
   const month = Number(attendanceMonth.value)
   const start = month
@@ -285,32 +319,42 @@ function attendanceRange() {
 
 function createWeekdayRecords(start, end, summaryRows) {
   if (start > end || !Array.isArray(summaryRows) || summaryRows.length === 0) return []
-  const summaries = new Map(summaryRows.map((row) => {
+  return summaryRows.map((row) => {
+    const dateKey = String(row.fecha || '').slice(0, 10)
+    const [year, month, day] = dateKey.split('-').map(Number)
+    const dateValue = new Date(year, month - 1, day)
+    if (!year || !month || !day || Number.isNaN(dateValue.getTime())) return null
+    if (dateValue < start || dateValue > end || dateValue.getDay() === 0 || dateValue.getDay() === 6) return null
     const present = Number(row.presentes) || 0
     const late = Number(row.tardanzas) || 0
     const absent = Number(row.ausentes) || 0
-    return [String(row.fecha).slice(0, 10), { present, late, absent }]
-  }))
-  const records = []
-  const cursor = new Date(start.getFullYear(), start.getMonth(), start.getDate())
-  while (cursor <= end) {
-    const day = cursor.getDay()
-    if (day !== 0 && day !== 6) {
-      const date = toLocalDateKey(cursor)
-      const counts = summaries.get(date) || { present: 0, late: 0, absent: 0 }
-      records.push({
-        id: date,
-        date,
-        present: counts.present,
-        late: counts.late,
-        absent: counts.absent,
-        total: counts.present + counts.late,
-        registeredTotal: counts.present + counts.late + counts.absent,
-      })
+    const registeredTotal = present + late + absent
+    if (!registeredTotal) return null
+    return {
+      id: dateKey,
+      date: dateKey,
+      present,
+      late,
+      absent,
+      total: present + late,
+      registeredTotal,
     }
-    cursor.setDate(cursor.getDate() + 1)
-  }
-  return records.reverse()
+  }).filter(Boolean).sort((left, right) => right.date.localeCompare(left.date))
+}
+
+const attendanceWeekLabel = computed(() => {
+  const { start, end } = attendanceRange()
+  const formatter = new Intl.DateTimeFormat('es-PE', { day: 'numeric', month: 'long' })
+  return `${formatter.format(start)} – ${formatter.format(end)}`
+})
+
+function changeAttendanceWeek(direction) {
+  attendanceWeekOffset.value = Math.max(0, attendanceWeekOffset.value + direction)
+}
+
+function setAttendancePeriod(period) {
+  attendancePeriod.value = period
+  if (period === 'week') attendanceWeekOffset.value = 0
 }
 
 async function loadAttendanceRecords() {
@@ -327,8 +371,9 @@ async function loadAttendanceRecords() {
     }
     const from = toLocalDateKey(start)
     const to = toLocalDateKey(end)
+    const historyPath = isProfessor.value ? '/api/asistencia/web/historial' : '/api/admin/asistencia/historial'
     const rows = await apiGetCached(
-      `/api/admin/asistencia/historial?desde=${from}&hasta=${to}`,
+      `${historyPath}?desde=${from}&hasta=${to}`,
       { signal: controller.signal, ttlMs: 30_000 },
     )
     if (controller.signal.aborted) return
@@ -351,7 +396,13 @@ async function loadAttendanceSections() {
   }
 }
 
+watch([attendancePeriod, attendanceWeekOffset], () => {
+  attendanceCurrentPage.value = 1
+  loadAttendanceRecords()
+})
+
 watch([attendanceMonth, attendanceYear], () => {
+  if (attendancePeriod.value !== 'month') return
   attendanceCurrentPage.value = 1
   loadAttendanceRecords()
 })
@@ -399,7 +450,8 @@ async function loadAttendanceDetail(record) {
   attendanceDetailError.value = ''
   attendanceDetailRows.value = []
   try {
-    const rows = await apiGet(`/api/admin/asistencia/fecha?fecha=${encodeURIComponent(record.date)}`, {
+    const detailPath = isProfessor.value ? '/api/asistencia/web/fecha' : '/api/admin/asistencia/fecha'
+    const rows = await apiGet(`${detailPath}?fecha=${encodeURIComponent(record.date)}`, {
       signal: controller.signal,
     })
     if (controller.signal.aborted) return
@@ -426,6 +478,31 @@ async function loadAttendanceDetail(record) {
   }
 }
 
+function openAttendanceEdit(event, student) {
+  if (!canEditAttendance.value || !student?.id) return
+  attendanceEditError.value = ''
+  attendanceEditState.value = attendanceStateOptions.find((option) => option.label === student.estado)?.value || 'presente'
+  editAttendance.show(event, student)
+}
+
+async function saveAttendanceEdit(close) {
+  const student = editAttendance.payload.value
+  if (!student?.id || !canEditAttendance.value || attendanceEditLoading.value) return
+  attendanceEditLoading.value = true
+  attendanceEditError.value = ''
+  try {
+    await apiPut(`/api/asistencia/${encodeURIComponent(student.id)}`, { estado: attendanceEditState.value })
+    const record = details.payload.value
+    close()
+    toast.success('Asistencia actualizada', { icon: null })
+    if (record) await Promise.all([loadAttendanceDetail(record), loadAttendanceRecords()])
+  } catch (error) {
+    attendanceEditError.value = error.message || 'No se pudo actualizar la asistencia.'
+  } finally {
+    attendanceEditLoading.value = false
+  }
+}
+
 function downloadAttendanceRecord(record) {
   const columns = ['Fecha', 'Total de asistencias', 'Salón y sección', 'Nombre', 'Apellido', 'Estado', 'Hora de ingreso']
   const rows = attendanceDetailRows.value.map((student) => [
@@ -438,9 +515,7 @@ function downloadAttendanceRecord(record) {
     student.horaIngreso,
   ])
   const csvRows = [columns, ...(rows.length ? rows : [[record.date, record.total, '', '', '', '', '']])]
-  const csv = csvRows
-    .map((row) => row.map((value) => `"${String(value ?? '').replace(/"/g, '""')}"`).join(','))
-    .join('\r\n')
+  const csv = serializeCsvRows(csvRows)
   const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' })
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
@@ -555,8 +630,10 @@ const filteredAttendanceRecords = computed(() => {
   const records = attendanceRecords.value.filter((record) => {
     const date = new Date(`${record.date}T00:00:00`)
     const matchesSearch = attendanceTitle(record).toLocaleLowerCase('es-PE').includes(query)
-    const matchesMonth = attendanceMonth.value === '' || date.getMonth() + 1 === Number(attendanceMonth.value)
-    const matchesYear = attendanceYear.value === '' || date.getFullYear() === Number(attendanceYear.value)
+    const matchesMonth = attendancePeriod.value === 'week'
+      || attendanceMonth.value === '' || date.getMonth() + 1 === Number(attendanceMonth.value)
+    const matchesYear = attendancePeriod.value === 'week'
+      || attendanceYear.value === '' || date.getFullYear() === Number(attendanceYear.value)
     return matchesSearch && matchesMonth && matchesYear
   })
   if (attendanceSort.value === 'date-asc') return records.sort((left, right) => left.date.localeCompare(right.date))
@@ -624,13 +701,38 @@ function handleMobileAction(action, event) {
         </div>
       </header>
 
+      <div v-if="attendancePeriod === 'week'" class="attendance-week-navigation">
+        <button
+          type="button"
+          class="style-7 for-icon small rounded background outline-text"
+          aria-label="Ver semana anterior"
+          title="Ver semana anterior"
+          @click="changeAttendanceWeek(1)"
+        >
+          <md-ripple aria-hidden="true"></md-ripple>
+          <md-icon aria-hidden="true">chevron_left</md-icon>
+        </button>
+        <span class="body-medium outline-text" aria-live="polite">{{ attendanceWeekLabel }}</span>
+        <button
+          type="button"
+          class="style-7 for-icon small rounded background outline-text"
+          aria-label="Ver semana siguiente"
+          title="Ver semana siguiente"
+          :disabled="attendanceWeekOffset === 0"
+          @click="changeAttendanceWeek(-1)"
+        >
+          <md-ripple aria-hidden="true"></md-ripple>
+          <md-icon aria-hidden="true">chevron_right</md-icon>
+        </button>
+      </div>
+
       <section
         v-if="attendanceLoading"
         class="attendance-records attendance-grid attendance-grid-loading"
         role="status"
         aria-label="Cargando jornadas de asistencia"
       >
-        <article v-for="skeleton in 6" :key="skeleton" class="attendance-card-section" aria-hidden="true">
+        <article v-for="skeleton in (attendancePeriod === 'week' ? 5 : 6)" :key="skeleton" class="attendance-card-section" aria-hidden="true">
           <div class="simple-container align-center attendance-date-heading">
             <span class="attendance-skeleton-block animation-loading-1" style="width: 132px; height: 16px; border-radius: 8px"></span>
           </div>
@@ -719,6 +821,7 @@ function handleMobileAction(action, event) {
                   <span>Ver</span>
                 </button>
                 <button
+                  v-if="canDeleteAttendance"
                   type="button"
                   class="style-7 for-icon small hover-error-container background outline-text"
                   :aria-label="`Eliminar ${attendanceTitle(record).toLocaleLowerCase('es-PE')}`"
@@ -755,6 +858,7 @@ function handleMobileAction(action, event) {
                 </button>
 
                 <button
+                  v-if="canDeleteAttendance"
                   type="button"
                   class="style-7 for-icon small hover-error-container background outline-text"
                   :aria-label="`Eliminar ${attendanceTitle(record).toLocaleLowerCase('es-PE')}`"
@@ -1084,16 +1188,30 @@ function handleMobileAction(action, event) {
                     <td>{{ student.nombre }}</td>
                     <td>{{ student.apellido }}</td>
                     <td>
-                      <span
-                        class="attendance-status"
-                        :class="{
-                          'is-present': student.estado === 'Presente',
-                          'is-late': student.estado === 'Tardanza',
-                          'is-absent': student.estado === 'Ausente',
-                        }"
-                      >
-                        {{ student.estado }}
-                      </span>
+                      <div class="attendance-status-cell">
+                        <span
+                          class="attendance-status"
+                          :class="{
+                            'is-present': student.estado === 'Presente',
+                            'is-late': student.estado === 'Tardanza',
+                            'is-absent': student.estado === 'Ausente',
+                            'is-justified': student.estado === 'Justificado',
+                          }"
+                        >
+                          {{ student.estado }}
+                        </span>
+                        <button
+                          v-if="canEditAttendance && student.id"
+                          type="button"
+                          class="style-7 for-icon small rounded background outline-text attendance-edit-status"
+                          :aria-label="`Editar asistencia de ${student.nombre} ${student.apellido}`"
+                          title="Editar asistencia"
+                          @click.stop="openAttendanceEdit($event, student)"
+                        >
+                          <md-ripple aria-hidden="true"></md-ripple>
+                          <md-icon aria-hidden="true">edit</md-icon>
+                        </button>
+                      </div>
                     </td>
                     <td class="attendance-arrival-time">{{ student.horaIngreso }}</td>
                   </tr>
@@ -1116,6 +1234,60 @@ function handleMobileAction(action, event) {
           </div>
         </section>
       </section>
+    </template>
+  </FlipModal>
+
+  <FlipModal
+    v-if="editAttendance.open.value"
+    :origin="editAttendance.origin.value"
+    window-class="slim"
+    content-class="simple-container direction-column gap-24"
+    content-data-v="att-edit"
+    close-strategy="container-only"
+    @close="editAttendance.hide"
+  >
+    <template #default="{ close }">
+      <div data-v-att-edit class="simple-container direction-column gap-8">
+        <span class="display-small weight-600 title line-height-1 text-gradient">Editar asistencia</span>
+        <span class="body-medium outline-text">
+          {{ editAttendance.payload.value?.nombre }} {{ editAttendance.payload.value?.apellido }}
+        </span>
+      </div>
+      <form class="simple-container direction-column gap-16" @submit.prevent="saveAttendanceEdit(close)">
+        <div data-v-att-edit data-flow-item data-input-label="Estado de asistencia">
+          <SelectFlip
+            v-model="attendanceEditState"
+            name="attendance-status"
+            aria-label="Estado de asistencia"
+            :options="attendanceStateOptions"
+            :option-height="52"
+          />
+        </div>
+        <span v-if="attendanceEditError" class="body-medium error-text" role="alert">
+          {{ attendanceEditError }}
+        </span>
+        <div class="simple-container justify-right gap-8">
+          <button
+            type="button"
+            class="style-7 for-icon small outline-text transparent rounded"
+            aria-label="Cancelar edición"
+            :disabled="attendanceEditLoading"
+            @click="close()"
+          >
+            <md-ripple aria-hidden="true"></md-ripple>
+            <md-icon aria-hidden="true">close</md-icon>
+          </button>
+          <button
+            type="submit"
+            class="style-7 rounded flex-0-1 justify-center primary-container on-primary-container-text with-icon-left"
+            :disabled="attendanceEditLoading"
+          >
+            <md-ripple aria-hidden="true"></md-ripple>
+            <md-icon aria-hidden="true">check</md-icon>
+            {{ attendanceEditLoading ? 'Guardando…' : 'Guardar' }}
+          </button>
+        </div>
+      </form>
     </template>
   </FlipModal>
 
@@ -1167,12 +1339,14 @@ function handleMobileAction(action, event) {
   <ModalFilters
     v-if="filters.open.value"
     :attendance-sort="attendanceSort"
+    :attendance-period="attendancePeriod"
     :attendance-month="attendanceMonth"
     :attendance-year="attendanceYear"
     :origin="filters.origin.value"
     scope="asistencias"
     @update:attendance-month="attendanceMonth = $event"
     @update:attendance-year="attendanceYear = $event"
+    @update:attendance-period="setAttendancePeriod"
     @update:attendance-sort="attendanceSort = $event"
     @close="filters.hide"
   />
@@ -1201,6 +1375,25 @@ function handleMobileAction(action, event) {
   gap: 8px;
   min-width: 0;
   margin-left: auto;
+}
+
+.attendance-week-navigation {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 40px;
+}
+
+.attendance-week-navigation > span {
+  min-width: 180px;
+  text-align: center;
+  text-transform: capitalize;
+}
+
+.attendance-week-navigation button:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 
 .attendance-grid-loading {
@@ -1589,9 +1782,33 @@ function handleMobileAction(action, event) {
   color: var(--md-sys-color-on-tertiary-container);
 }
 
+.attendance-status-cell {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.attendance-edit-status {
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  opacity: 0.72;
+}
+
+.attendance-edit-status:hover,
+.attendance-edit-status:focus-visible {
+  opacity: 1;
+}
+
 .attendance-status.is-absent {
   background: var(--md-sys-color-error-container);
   color: var(--md-sys-color-on-error-container);
+}
+
+.attendance-status.is-justified {
+  background: var(--md-sys-color-surface-container-high);
+  color: var(--md-sys-color-on-surface-variant);
 }
 
 .attendance-arrival-time {
@@ -1613,6 +1830,14 @@ function handleMobileAction(action, event) {
 }
 
 @media (max-width: 680px) {
+  .attendance-week-navigation {
+    margin-top: -8px;
+  }
+
+  .attendance-week-navigation > span {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
   .attendance-view .app-header {
     flex-wrap: nowrap;
     align-items: center;
@@ -1733,6 +1958,10 @@ function handleMobileAction(action, event) {
     min-height: 22px;
     padding: 2px 4px;
     font-size: 10px;
+  }
+
+  .attendance-edit-status {
+    opacity: 1;
   }
 
   .attendance-arrival-time {

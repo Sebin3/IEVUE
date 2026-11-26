@@ -35,7 +35,7 @@ const profileName = computed(() => {
 const selectedTabOffset = computed(() => {
   let offset = 0
 
-  for (const entry of navEntries) {
+  for (const entry of visibleNavEntries.value) {
     if (entry.type === 'tab' && entry.id === selectedTab.value) return offset
     offset += entry.type === 'heading' ? 32 : 40
   }
@@ -111,7 +111,11 @@ const navEntries = [
   // { type: 'tab', id: 'agent', label: 'Agente', icon: 'cognition_2' },
 ]
 
-const tabs = navEntries.filter((entry) => entry.type === 'tab')
+const isWebProfessor = computed(() => auth.isWebProfessor())
+const visibleNavEntries = computed(() => isWebProfessor.value
+  ? navEntries.filter((entry) => entry.id === 'account')
+  : navEntries)
+const tabs = computed(() => visibleNavEntries.value.filter((entry) => entry.type === 'tab'))
 
 async function loadWebSession() {
   if (webSession.value || webSessionLoading.value) return
@@ -136,11 +140,11 @@ watch(selectedTab, (tab) => {
 })
 
 function moveTab(event, direction) {
-  const currentIndex = tabs.findIndex((tab) => tab.id === selectedTab.value)
-  const nextIndex = (currentIndex + direction + tabs.length) % tabs.length
-  selectedTab.value = tabs[nextIndex].id
+  const currentIndex = tabs.value.findIndex((tab) => tab.id === selectedTab.value)
+  const nextIndex = (currentIndex + direction + tabs.value.length) % tabs.value.length
+  selectedTab.value = tabs.value[nextIndex].id
   event.currentTarget.parentElement
-    ?.querySelector(`[data-tab="${tabs[nextIndex].id}"]`)
+    ?.querySelector(`[data-tab="${tabs.value[nextIndex].id}"]`)
     ?.focus()
 }
 </script>
@@ -180,7 +184,7 @@ function moveTab(event, direction) {
           :style="{ '--settings-tab-index': tabs.findIndex((tab) => tab.id === selectedTab), '--settings-tab-offset': `${selectedTabOffset}px` }"
         >
           <span class="pretty-tabs__indicator" aria-hidden="true"></span>
-          <template v-for="entry in navEntries" :key="entry.id">
+          <template v-for="entry in visibleNavEntries" :key="entry.id">
             <span v-if="entry.type === 'heading'" class="settings-tab-section-label" aria-hidden="true">
               {{ entry.label }}
             </span>
